@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RMS Desktop</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">Requirement Management System</p>
+          <h1>RMS Desktop</h1>
+        </div>
+        <div class="stat-card">
+          <span>Veri klasoru</span>
+          <strong id="database-folder">Yukleniyor...</strong>
+        </div>
+        <div class="stat-card">
+          <span>Veri dosyasi</span>
+          <strong id="database-file">Yukleniyor...</strong>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Paylasilan veri</p>
+            <h2>Arayuz hazir</h2>
+            <p class="muted">
+              Uygulama ortak klasorde <code>rms-data.json</code> dosyasi kullanir.
+            </p>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <span>Seviye sayisi</span>
+              <strong id="level-count">0</strong>
+            </div>
+            <div>
+              <span>Gereksinim sayisi</span>
+              <strong id="requirement-count">0</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3>Yeni gereksinim</h3>
+          </div>
+          <form id="requirement-form" class="form-grid">
+            <label>
+              <span>Kod</span>
+              <input name="reqCode" placeholder="REQ-001" />
+            </label>
+            <label>
+              <span>Baslik</span>
+              <input name="title" placeholder="Gereksinim basligi" required />
+            </label>
+            <label>
+              <span>Seviye</span>
+              <select name="levelCode" id="level-select"></select>
+            </label>
+            <label>
+              <span>Durum</span>
+              <input name="status" value="draft" />
+            </label>
+            <label class="full">
+              <span>Ifade</span>
+              <textarea name="statement" rows="4" placeholder="Gereksinim metni"></textarea>
+            </label>
+            <button type="submit" class="primary">Kaydet</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3>Gereksinimler</h3>
+          </div>
+          <div id="requirement-list" class="list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3>Requirement Levels</h3>
+          </div>
+          <div id="level-list" class="list compact"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./renderer.js"></script>
+  </body>
+  </html>

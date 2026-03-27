@@ -1,0 +1,397 @@
+[
+  {
+    "sort_order": 1,
+    "level_code": "L0",
+    "level_name": "External High-Level Goals, Needs, and Expectations",
+    "short_definition": "Top-level external requirements that explain why the programme or facility exists and what must ultimately be achieved.",
+    "detailed_explanation": "This level captures the highest-level goals, needs, and expectations coming from external stakeholders such as the state, regulator, society, waste owners, or international safety principles. These are not yet detailed design requirements. They define the overall purpose, safety intent, and boundary conditions for the programme.",
+    "typical_question_answered": "Why does this programme or facility exist, and what top-level outcome must it achieve?",
+    "typical_sources": [
+      "National laws",
+      "Government policy",
+      "Regulatory framework",
+      "IAEA safety principles",
+      "National radioactive waste management policy",
+      "Strategic programme decisions"
+    ],
+    "expected_content": [
+      "Top-level safety expectations",
+      "Environmental protection expectations",
+      "Long-term protection goals",
+      "Public and stakeholder expectations",
+      "High-level compliance obligations"
+    ],
+    "example_requirements": [
+      {
+        "title": "Protection of people and the environment",
+        "statement": "Radioactive waste shall be managed in a manner that protects people and the environment in the short and long term."
+      },
+      {
+        "title": "Regulatory compliance",
+        "statement": "The waste management programme shall comply with applicable national regulatory requirements."
+      },
+      {
+        "title": "Long-term safety objective",
+        "statement": "The disposal system shall provide an acceptable level of post-closure safety."
+      }
+    ],
+    "database_hint": "Use this level for the highest originating requirements. These usually have no parent requirement inside the project hierarchy, but they often link strongly to legal or policy source documents.",
+    "is_active": true
+  },
+  {
+    "sort_order": 2,
+    "level_code": "L1",
+    "level_name": "Programme or System Goals and Principles",
+    "short_definition": "Internalized programme-level goals and principles derived from L0 requirements.",
+    "detailed_explanation": "This level translates external high-level expectations into programme or system goals that the implementing organization can manage directly. It often includes safety strategy, management principles, design philosophy, and programme objectives.",
+    "typical_question_answered": "What main goals and principles will the programme adopt in order to satisfy the external expectations?",
+    "typical_sources": [
+      "Programme strategy documents",
+      "Safety strategy",
+      "Management system documents",
+      "Top-level design basis",
+      "Derived interpretations of L0 requirements"
+    ],
+    "expected_content": [
+      "Safety principles for the programme",
+      "Operational and post-closure goals",
+      "Records and traceability goals",
+      "Management and quality principles",
+      "Strategic waste acceptance goals"
+    ],
+    "example_requirements": [
+      {
+        "title": "Passive safety principle",
+        "statement": "Post-closure safety shall rely primarily on passive safety features."
+      },
+      {
+        "title": "Traceability principle",
+        "statement": "Waste packages and associated records shall remain traceable throughout the facility lifecycle."
+      },
+      {
+        "title": "Exposure minimization",
+        "statement": "Occupational exposure shall be managed according to optimization principles."
+      }
+    ],
+    "database_hint": "These are usually derived from L0 and may serve as parents for functions, characteristics, and performance targets.",
+    "is_active": true
+  },
+  {
+    "sort_order": 3,
+    "level_code": "L2a",
+    "level_name": "Functions and Sub-Functions",
+    "short_definition": "Statements describing what the system, subsystem, process, or barrier must do.",
+    "detailed_explanation": "This level captures functional requirements. A function describes the role or action that an element of the system must perform. Functional requirements do not yet fully define design choices; they describe required behavior or capability.",
+    "typical_question_answered": "What must the system or element do?",
+    "typical_sources": [
+      "Derived from programme goals",
+      "Functional analysis",
+      "Safety concept studies",
+      "System architecture work",
+      "Barrier function analysis"
+    ],
+    "expected_content": [
+      "Containment functions",
+      "Isolation functions",
+      "Monitoring functions",
+      "Characterization functions",
+      "Records management functions",
+      "Shielding, confinement, and ventilation functions"
+    ],
+    "example_requirements": [
+      {
+        "title": "Waste characterization",
+        "statement": "The facility shall characterize incoming waste before acceptance."
+      },
+      {
+        "title": "Containment function",
+        "statement": "The waste package shall limit radionuclide release during handling and storage."
+      },
+      {
+        "title": "Traceability function",
+        "statement": "The RMS shall maintain traceable links between requirements, source documents, and evidence."
+      }
+    ],
+    "database_hint": "Allocate these requirements to functional architecture elements, processes, SSCs, or organizational responsibilities.",
+    "is_active": true
+  },
+  {
+    "sort_order": 4,
+    "level_code": "L2b",
+    "level_name": "Quality Characteristics and Non-Functional Requirements",
+    "short_definition": "Statements describing how well something must perform or what qualitative properties it must possess.",
+    "detailed_explanation": "This level captures non-functional characteristics such as reliability, maintainability, durability, robustness, information integrity, security, usability, auditability, and resilience. These requirements shape quality expectations without necessarily defining a specific design solution.",
+    "typical_question_answered": "How well must it work, or what qualities must it have?",
+    "typical_sources": [
+      "Quality management objectives",
+      "Operational experience",
+      "Regulatory expectations",
+      "Information governance rules",
+      "System reliability and maintainability targets"
+    ],
+    "expected_content": [
+      "Reliability",
+      "Maintainability",
+      "Auditability",
+      "Data integrity",
+      "Cybersecurity",
+      "Availability",
+      "Durability"
+    ],
+    "example_requirements": [
+      {
+        "title": "Audit trail",
+        "statement": "The RMS shall provide a complete and tamper-evident audit trail for requirement changes."
+      },
+      {
+        "title": "Data integrity",
+        "statement": "Critical waste records shall be protected against unauthorized modification."
+      },
+      {
+        "title": "Maintainability",
+        "statement": "Monitoring equipment shall be maintainable without unacceptable exposure to workers."
+      }
+    ],
+    "database_hint": "Keep these separate from functional requirements when possible. They are often later translated into measurable quality targets at L3b.",
+    "is_active": true
+  },
+  {
+    "sort_order": 5,
+    "level_code": "L3a",
+    "level_name": "Performance Targets for Functions",
+    "short_definition": "Measurable targets showing how successfully a function must be achieved.",
+    "detailed_explanation": "This level turns functions into measurable targets. The requirement should ideally contain objective, verifiable, and testable criteria such as ranges, thresholds, capacities, response times, or performance limits.",
+    "typical_question_answered": "How much, how often, how fast, or to what limit must the function be achieved?",
+    "typical_sources": [
+      "Safety assessment inputs",
+      "Engineering analysis",
+      "Operational criteria",
+      "Derived from functional requirements",
+      "Acceptance criteria development"
+    ],
+    "expected_content": [
+      "Capacity targets",
+      "Response time targets",
+      "Release limits",
+      "Dose-related operational targets",
+      "Classification throughput targets",
+      "Monitoring sensitivity targets"
+    ],
+    "example_requirements": [
+      {
+        "title": "Incoming waste screening performance",
+        "statement": "The waste acceptance process shall verify 100 percent of incoming packages against the approved acceptance criteria before emplacement."
+      },
+      {
+        "title": "Ventilation performance",
+        "statement": "The ventilation system shall maintain airborne contamination below the approved operational limit under normal operating conditions."
+      },
+      {
+        "title": "Query traceability performance",
+        "statement": "The RMS shall return requirement-to-evidence traceability results for approved users within the defined system response time."
+      }
+    ],
+    "database_hint": "This level is ideal for linking to verification cases, acceptance criteria, and performance indicators.",
+    "is_active": true
+  },
+  {
+    "sort_order": 6,
+    "level_code": "L3b",
+    "level_name": "Quality Targets for Characteristics",
+    "short_definition": "Measurable targets for non-functional or quality-related requirements.",
+    "detailed_explanation": "This level transforms quality characteristics into measurable and verifiable targets. If L2b says a system shall be reliable, L3b explains how reliable it must be, how availability will be measured, or what threshold demonstrates compliance.",
+    "typical_question_answered": "What measurable criterion shows that the desired quality has been achieved?",
+    "typical_sources": [
+      "Quality plans",
+      "IT architecture rules",
+      "Reliability targets",
+      "Cybersecurity baselines",
+      "Records management standards"
+    ],
+    "expected_content": [
+      "Availability targets",
+      "Backup frequency",
+      "Recovery objectives",
+      "Integrity and retention targets",
+      "Audit completeness targets",
+      "Usability and access control targets"
+    ],
+    "example_requirements": [
+      {
+        "title": "Availability target",
+        "statement": "The RMS shall achieve the approved minimum service availability for business-critical requirement records."
+      },
+      {
+        "title": "Backup target",
+        "statement": "Approved requirement data shall be backed up at the defined frequency and recoverable within the approved recovery objective."
+      },
+      {
+        "title": "Audit completeness target",
+        "statement": "The system shall retain a complete revision history for every approved requirement record."
+      }
+    ],
+    "database_hint": "Use this level for measurable non-functional criteria that can later be verified through tests, audits, or configuration reviews.",
+    "is_active": true
+  },
+  {
+    "sort_order": 7,
+    "level_code": "L4a",
+    "level_name": "Design Input Requirements",
+    "short_definition": "Consolidated input requirements that a designer must use when developing a solution.",
+    "detailed_explanation": "This level gathers all relevant functional requirements, quality requirements, performance targets, constraints, loads, environmental conditions, and regulatory conditions that form the input set for design work. It tells the designer what the design must satisfy.",
+    "typical_question_answered": "What inputs, boundary conditions, loads, and targets must the design satisfy?",
+    "typical_sources": [
+      "Allocated L2 and L3 requirements",
+      "Site data",
+      "Waste inventory data",
+      "Environmental conditions",
+      "Design basis assumptions",
+      "Regulatory constraints"
+    ],
+    "expected_content": [
+      "Environmental conditions",
+      "Waste package characteristics",
+      "Load cases",
+      "Target performance limits",
+      "Design assumptions",
+      "Applicable standards and constraints"
+    ],
+    "example_requirements": [
+      {
+        "title": "Waste package design inputs",
+        "statement": "The waste package design shall account for the approved waste inventory, handling loads, thermal conditions, chemical environment, and long-term containment targets."
+      },
+      {
+        "title": "RMS design inputs",
+        "statement": "The RMS design shall address approved user roles, audit requirements, access control rules, retention rules, integration needs, and traceability obligations."
+      },
+      {
+        "title": "Repository barrier design inputs",
+        "statement": "The barrier design shall consider approved groundwater chemistry, mechanical loads, temperature evolution, and required performance targets."
+      }
+    ],
+    "database_hint": "These requirements often sit at the transition between the needs domain and the solution domain. They should be linked to allocations, constraints, and assumptions.",
+    "is_active": true
+  },
+  {
+    "sort_order": 8,
+    "level_code": "L4b",
+    "level_name": "Design Output Specifications",
+    "short_definition": "Specifications describing the chosen design solution or design outputs.",
+    "detailed_explanation": "This level describes the design result. It includes the selected materials, dimensions, architecture, interfaces, component specifications, data structures, and other output specifications that define the chosen solution.",
+    "typical_question_answered": "What design has been produced in order to satisfy the design inputs?",
+    "typical_sources": [
+      "Engineering design work",
+      "System architecture design",
+      "Civil, mechanical, electrical, and IT design outputs",
+      "Approved design calculations",
+      "Reference design documentation"
+    ],
+    "expected_content": [
+      "Material selections",
+      "Dimensions",
+      "System architecture specifications",
+      "Interface definitions",
+      "Data model specifications",
+      "Approved design parameters"
+    ],
+    "example_requirements": [
+      {
+        "title": "Container material specification",
+        "statement": "The disposal container shall use the approved material grade and minimum wall thickness defined by the reference design."
+      },
+      {
+        "title": "RMS data model specification",
+        "statement": "The RMS shall implement the approved entity structure for requirements, sources, allocations, verification records, and revision history."
+      },
+      {
+        "title": "Barrier geometry specification",
+        "statement": "The engineered barrier shall conform to the approved geometry and installation envelope specified in the reference design."
+      }
+    ],
+    "database_hint": "These records usually have strong links to design documents, drawings, schemas, interface specifications, and reference models.",
+    "is_active": true
+  },
+  {
+    "sort_order": 9,
+    "level_code": "L5",
+    "level_name": "Production, Construction, Implementation, and Verification Specifications",
+    "short_definition": "Requirements describing how the approved design will be produced, implemented, controlled, inspected, and verified.",
+    "detailed_explanation": "This level addresses implementation. It includes fabrication rules, construction methods, work instructions, acceptance inspection rules, commissioning conditions, test plans, installation tolerances, software deployment rules, and implementation QA/QC controls.",
+    "typical_question_answered": "How will the approved solution be built, configured, installed, inspected, and verified?",
+    "typical_sources": [
+      "Construction specifications",
+      "Manufacturing procedures",
+      "Installation procedures",
+      "Test plans",
+      "Commissioning plans",
+      "Software implementation procedures",
+      "QA/QC procedures"
+    ],
+    "expected_content": [
+      "Manufacturing tolerances",
+      "Inspection plans",
+      "Construction acceptance rules",
+      "Test procedures",
+      "Deployment procedures",
+      "Commissioning controls"
+    ],
+    "example_requirements": [
+      {
+        "title": "Fabrication tolerances",
+        "statement": "Waste package fabrication shall comply with the approved dimensional tolerances and inspection hold points."
+      },
+      {
+        "title": "RMS deployment control",
+        "statement": "The RMS shall be deployed, tested, and released in accordance with the approved configuration and change-control procedure."
+      },
+      {
+        "title": "Barrier installation control",
+        "statement": "Barrier installation shall follow the approved emplacement procedure and quality control checks."
+      }
+    ],
+    "database_hint": "This level commonly links to procedures, work packages, inspection plans, test specifications, and verification cases.",
+    "is_active": true
+  },
+  {
+    "sort_order": 10,
+    "level_code": "L6",
+    "level_name": "Implemented Product Documentation and Compliance Evidence",
+    "short_definition": "Records showing what was actually built, implemented, tested, accepted, and demonstrated.",
+    "detailed_explanation": "This level does not define what should be done; it records what was actually done and what evidence demonstrates compliance. Typical records include as-built documentation, test reports, inspection results, validation results, material certificates, audit records, and regulatory submission evidence.",
+    "typical_question_answered": "What was actually implemented, and what evidence shows that it complies?",
+    "typical_sources": [
+      "As-built records",
+      "Inspection reports",
+      "Commissioning records",
+      "Test reports",
+      "Validation reports",
+      "Audit records",
+      "Regulatory submission packages"
+    ],
+    "expected_content": [
+      "As-built drawings and records",
+      "Inspection evidence",
+      "Verification and validation reports",
+      "Certificates",
+      "Acceptance records",
+      "Compliance demonstrations"
+    ],
+    "example_requirements": [
+      {
+        "title": "As-built evidence",
+        "statement": "As-built documentation shall be generated and retained for approved safety-significant structures, systems, and components."
+      },
+      {
+        "title": "Verification evidence retention",
+        "statement": "Verification results demonstrating requirement compliance shall be retained in the approved evidence repository."
+      },
+      {
+        "title": "Regulatory submission evidence",
+        "statement": "Compliance evidence required for licensing submissions shall be compiled, reviewed, and retained in the approved records system."
+      }
+    ],
+    "database_hint": "Although often document-heavy, this level should still be linkable to requirements, verification cases, baselines, and approval decisions.",
+    "is_active": true
+  }
+]

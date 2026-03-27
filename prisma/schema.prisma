@@ -1,0 +1,615 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ManagedObjectType {
+  requirement
+  requirement_revision
+  constraint
+  system_element
+  verification_case
+  document
+  decision
+  change_request
+  baseline
+}
+
+model RequirementLevel {
+  levelCode               String        @id @map("level_code")
+  levelName               String        @map("level_name")
+  shortDefinition         String        @map("short_definition")
+  detailedExplanation     String        @map("detailed_explanation")
+  typicalQuestionAnswered String?       @map("typical_question_answered")
+  typicalSources          Json?         @map("typical_sources")
+  expectedContent         Json?         @map("expected_content")
+  exampleRequirements     Json?         @map("example_requirements")
+  databaseHint            String?       @map("database_hint")
+  sortOrder               Int           @map("sort_order")
+  isActive                Boolean       @default(true) @map("is_active")
+  requirements            Requirement[]
+
+  @@map("requirement_levels")
+}
+
+model Requirement {
+  id                    String                     @id @default(uuid()) @db.Uuid
+  reqUid                String                     @unique @map("req_uid")
+  reqCode               String                     @unique @map("req_code")
+  title                 String
+  statement             String
+  normalizedStatement   String?                    @map("normalized_statement")
+  requirementKind       String                     @map("requirement_kind")
+  levelCode             String                     @map("level_code")
+  domainType            String                     @map("domain_type")
+  status                String
+  priority              String?
+  criticality           String?
+  safetySignificance    String?                    @map("safety_significance")
+  securityClass         String?                    @map("security_class")
+  lifecyclePhaseId      String?                    @map("lifecycle_phase_id") @db.Uuid
+  ownerOrgId            String?                    @map("owner_org_id") @db.Uuid
+  responsibleRoleId     String?                    @map("responsible_role_id") @db.Uuid
+  approvalState         String?                    @map("approval_state")
+  effectiveFrom         DateTime?                  @map("effective_from") @db.Date
+  effectiveTo           DateTime?                  @map("effective_to") @db.Date
+  currentRevisionId     String?                    @unique @map("current_revision_id") @db.Uuid
+  isActive              Boolean                    @default(true) @map("is_active")
+  createdAt             DateTime                   @default(now()) @map("created_at")
+  updatedAt             DateTime                   @updatedAt @map("updated_at")
+  level                 RequirementLevel           @relation(fields: [levelCode], references: [levelCode])
+  lifecyclePhase        LifecyclePhase?            @relation(fields: [lifecyclePhaseId], references: [id])
+  ownerOrg              Organization?              @relation(fields: [ownerOrgId], references: [id])
+  responsibleRole       Role?                      @relation(fields: [responsibleRoleId], references: [id])
+  currentRevision       RequirementRevision?       @relation("CurrentRequirementRevision", fields: [currentRevisionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attributes            RequirementAttribute[]
+  sources               RequirementSource[]
+  outgoingRelationships RequirementRelationship[]  @relation("RequirementRelationshipFrom")
+  incomingRelationships RequirementRelationship[]  @relation("RequirementRelationshipTo")
+  allocations           RequirementAllocation[]
+  constraintImpacts     ConstraintImpact[]
+  governedInterfaces    SystemElementInterface[]
+  verificationCases     VerificationCase[]
+  validationCases       ValidationCase[]
+  revisions             RequirementRevision[]      @relation("RequirementRevisionHistory")
+  decisionRequirements  DecisionRequirement[]
+  conflictsAsPrimary    RequirementConflict[]      @relation("RequirementConflictPrimary")
+  conflictsAsSecondary  RequirementConflict[]      @relation("RequirementConflictSecondary")
+  scheduleLinks         RequirementScheduleLink[]
+
+  @@index([levelCode])
+  @@index([requirementKind])
+  @@index([status])
+  @@index([ownerOrgId])
+  @@index([lifecyclePhaseId])
+  @@map("requirements")
+}
+
+model RequirementAttribute {
+  id                    String               @id @default(uuid()) @db.Uuid
+  requirementId         String               @map("requirement_id") @db.Uuid
+  attributeName         String               @map("attribute_name")
+  attributeType         String               @map("attribute_type")
+  attributeValueText    String?              @map("attribute_value_text")
+  attributeValueNumber  Decimal?             @map("attribute_value_number") @db.Decimal(18, 6)
+  attributeValueUnit    String?              @map("attribute_value_unit")
+  attributeValueDate    DateTime?            @map("attribute_value_date") @db.Date
+  attributeValueBoolean Boolean?             @map("attribute_value_boolean")
+  sourceRevisionId      String?              @map("source_revision_id") @db.Uuid
+  notes                 String?
+  requirement           Requirement          @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  sourceRevision        RequirementRevision? @relation(fields: [sourceRevisionId], references: [id])
+
+  @@index([requirementId])
+  @@index([sourceRevisionId])
+  @@map("requirement_attributes")
+}
+
+model RequirementSource {
+  id                 String      @id @default(uuid()) @db.Uuid
+  requirementId      String      @map("requirement_id") @db.Uuid
+  sourceDocumentId   String      @map("source_document_id") @db.Uuid
+  sourceType         String      @map("source_type")
+  sourceLocator      String?     @map("source_locator")
+  quotedText         String?     @map("quoted_text")
+  interpretationNote String?     @map("interpretation_note")
+  isPrimarySource    Boolean     @default(false) @map("is_primary_source")
+  requirement        Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  sourceDocument     Document    @relation(fields: [sourceDocumentId], references: [id])
+
+  @@index([requirementId])
+  @@index([sourceDocumentId])
+  @@map("requirement_sources")
+}
+
+model RequirementRelationship {
+  id                   String         @id @default(uuid()) @db.Uuid
+  fromRequirementId    String         @map("from_requirement_id") @db.Uuid
+  toRequirementId      String         @map("to_requirement_id") @db.Uuid
+  relationshipType     String         @map("relationship_type")
+  relationshipStrength String?        @map("relationship_strength")
+  rationale            String?
+  createdInChangeId    String?        @map("created_in_change_id") @db.Uuid
+  fromRequirement      Requirement    @relation("RequirementRelationshipFrom", fields: [fromRequirementId], references: [id], onDelete: Cascade)
+  toRequirement        Requirement    @relation("RequirementRelationshipTo", fields: [toRequirementId], references: [id], onDelete: Cascade)
+  createdInChange      ChangeRequest? @relation(fields: [createdInChangeId], references: [id])
+
+  @@index([fromRequirementId])
+  @@index([toRequirementId])
+  @@index([createdInChangeId])
+  @@map("requirement_relationships")
+}
+
+model SystemElement {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  elementCode        String                   @unique @map("element_code")
+  name               String
+  elementType        String                   @map("element_type")
+  parentElementId    String?                  @map("parent_element_id") @db.Uuid
+  lifecyclePhaseId   String?                  @map("lifecycle_phase_id") @db.Uuid
+  description        String?
+  status             String?
+  parentElement      SystemElement?           @relation("SystemElementHierarchy", fields: [parentElementId], references: [id])
+  childElements      SystemElement[]          @relation("SystemElementHierarchy")
+  lifecyclePhase     LifecyclePhase?          @relation(fields: [lifecyclePhaseId], references: [id])
+  outgoingInterfaces SystemElementInterface[] @relation("SystemInterfaceFrom")
+  incomingInterfaces SystemElementInterface[] @relation("SystemInterfaceTo")
+  allocations        RequirementAllocation[]
+  constraintImpacts  ConstraintImpact[]
+  verificationCases  VerificationCase[]
+
+  @@index([lifecyclePhaseId])
+  @@map("system_elements")
+}
+
+model SystemElementInterface {
+  id                     String        @id @default(uuid()) @db.Uuid
+  fromElementId          String        @map("from_element_id") @db.Uuid
+  toElementId            String        @map("to_element_id") @db.Uuid
+  interfaceType          String        @map("interface_type")
+  description            String?
+  governingRequirementId String?       @map("governing_requirement_id") @db.Uuid
+  fromElement            SystemElement @relation("SystemInterfaceFrom", fields: [fromElementId], references: [id], onDelete: Cascade)
+  toElement              SystemElement @relation("SystemInterfaceTo", fields: [toElementId], references: [id], onDelete: Cascade)
+  governingRequirement   Requirement?  @relation(fields: [governingRequirementId], references: [id])
+
+  @@index([fromElementId])
+  @@index([toElementId])
+  @@index([governingRequirementId])
+  @@map("system_element_interfaces")
+}
+
+model RequirementAllocation {
+  id                      String        @id @default(uuid()) @db.Uuid
+  requirementId           String        @map("requirement_id") @db.Uuid
+  allocatedToElementId    String        @map("allocated_to_element_id") @db.Uuid
+  allocationType          String        @map("allocation_type")
+  allocatedFunction       String?       @map("allocated_function")
+  allocatedCharacteristic String?       @map("allocated_characteristic")
+  targetValue             Decimal?      @map("target_value") @db.Decimal(18, 6)
+  targetUnit              String?       @map("target_unit")
+  allocationRationale     String?       @map("allocation_rationale")
+  allocationStatus        String?       @map("allocation_status")
+  requirement             Requirement   @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  allocatedToElement      SystemElement @relation(fields: [allocatedToElementId], references: [id])
+
+  @@index([requirementId])
+  @@index([allocatedToElementId])
+  @@map("requirement_allocations")
+}
+
+model Constraint {
+  id                String             @id @default(uuid()) @db.Uuid
+  constraintCode    String             @unique @map("constraint_code")
+  title             String
+  description       String
+  constraintType    String             @map("constraint_type")
+  sourceDocumentId  String?            @map("source_document_id") @db.Uuid
+  status            String
+  ownerOrgId        String?            @map("owner_org_id") @db.Uuid
+  currentRevisionId String?            @map("current_revision_id") @db.Uuid
+  sourceDocument    Document?          @relation(fields: [sourceDocumentId], references: [id])
+  ownerOrg          Organization?      @relation(fields: [ownerOrgId], references: [id])
+  impacts           ConstraintImpact[]
+
+  @@index([sourceDocumentId])
+  @@index([ownerOrgId])
+  @@map("constraints")
+}
+
+model ConstraintImpact {
+  id                 String         @id @default(uuid()) @db.Uuid
+  constraintId       String         @map("constraint_id") @db.Uuid
+  requirementId      String?        @map("requirement_id") @db.Uuid
+  systemElementId    String?        @map("system_element_id") @db.Uuid
+  impactType         String         @map("impact_type")
+  impactDescription  String         @map("impact_description")
+  severity           String?
+  decisionNeededFlag Boolean        @default(false) @map("decision_needed_flag")
+  constraint         Constraint     @relation(fields: [constraintId], references: [id], onDelete: Cascade)
+  requirement        Requirement?   @relation(fields: [requirementId], references: [id])
+  systemElement      SystemElement? @relation(fields: [systemElementId], references: [id])
+
+  @@index([constraintId])
+  @@index([requirementId])
+  @@index([systemElementId])
+  @@map("constraint_impacts")
+}
+
+model VerificationMethod {
+  id          String             @id @default(uuid()) @db.Uuid
+  code        String             @unique
+  name        String
+  description String?
+  isActive    Boolean            @default(true) @map("is_active")
+  cases       VerificationCase[]
+
+  @@map("verification_methods")
+}
+
+model VerificationCase {
+  id                   String               @id @default(uuid()) @db.Uuid
+  requirementId        String               @map("requirement_id") @db.Uuid
+  systemElementId      String?              @map("system_element_id") @db.Uuid
+  verificationMethodId String               @map("verification_method_id") @db.Uuid
+  verificationTitle    String               @map("verification_title")
+  acceptanceCriteria   String               @map("acceptance_criteria")
+  plannedPhaseId       String?              @map("planned_phase_id") @db.Uuid
+  responsibleOrgId     String?              @map("responsible_org_id") @db.Uuid
+  status               String
+  dueDate              DateTime?            @map("due_date") @db.Date
+  requirement          Requirement          @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  systemElement        SystemElement?       @relation(fields: [systemElementId], references: [id])
+  verificationMethod   VerificationMethod   @relation(fields: [verificationMethodId], references: [id])
+  plannedPhase         LifecyclePhase?      @relation(fields: [plannedPhaseId], references: [id])
+  responsibleOrg       Organization?        @relation(fields: [responsibleOrgId], references: [id])
+  evidence             VerificationEvidence[]
+
+  @@index([requirementId])
+  @@index([systemElementId])
+  @@index([verificationMethodId])
+  @@index([plannedPhaseId])
+  @@index([responsibleOrgId])
+  @@map("verification_cases")
+}
+
+model VerificationEvidence {
+  id                 String           @id @default(uuid()) @db.Uuid
+  verificationCaseId String           @map("verification_case_id") @db.Uuid
+  evidenceDocumentId String           @map("evidence_document_id") @db.Uuid
+  evidenceType       String           @map("evidence_type")
+  resultSummary      String?          @map("result_summary")
+  resultStatus       String           @map("result_status")
+  reviewedBy         String?          @map("reviewed_by")
+  reviewDate         DateTime?        @map("review_date") @db.Date
+  verificationCase   VerificationCase @relation(fields: [verificationCaseId], references: [id], onDelete: Cascade)
+  evidenceDocument   Document         @relation(fields: [evidenceDocumentId], references: [id])
+
+  @@index([verificationCaseId])
+  @@index([evidenceDocumentId])
+  @@map("verification_evidence")
+}
+
+model ValidationCase {
+  id                 String      @id @default(uuid()) @db.Uuid
+  requirementId      String      @map("requirement_id") @db.Uuid
+  validationQuestion String      @map("validation_question")
+  stakeholderBasis   String?     @map("stakeholder_basis")
+  method             String
+  status             String
+  evidenceDocumentId String?     @map("evidence_document_id") @db.Uuid
+  requirement        Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  evidenceDocument   Document?   @relation(fields: [evidenceDocumentId], references: [id])
+
+  @@index([requirementId])
+  @@index([evidenceDocumentId])
+  @@map("validation_cases")
+}
+
+model ChangeRequest {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  crCode              String                   @unique @map("cr_code")
+  title               String
+  description         String
+  reasonType          String                   @map("reason_type")
+  initiatorOrgId      String?                  @map("initiator_org_id") @db.Uuid
+  dateRaised          DateTime                 @map("date_raised") @db.Date
+  priority            String?
+  impactSummary       String?                  @map("impact_summary")
+  status              String
+  initiatorOrg        Organization?            @relation(fields: [initiatorOrgId], references: [id])
+  items               ChangeRequestItem[]
+  relatedRelationships RequirementRelationship[]
+  triggeredRevisions  RequirementRevision[]
+
+  @@index([initiatorOrgId])
+  @@map("change_requests")
+}
+
+model ChangeRequestItem {
+  id              String            @id @default(uuid()) @db.Uuid
+  changeRequestId String            @map("change_request_id") @db.Uuid
+  objectType      ManagedObjectType @map("object_type")
+  objectId        String            @map("object_id") @db.Uuid
+  proposedAction  String            @map("proposed_action")
+  itemNotes       String?           @map("item_notes")
+  changeRequest   ChangeRequest     @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+
+  @@index([changeRequestId])
+  @@index([objectType, objectId])
+  @@map("change_request_items")
+}
+
+model RequirementRevision {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  requirementId         String                  @map("requirement_id") @db.Uuid
+  revisionNo            String                  @map("revision_no")
+  revisionStatus        String                  @map("revision_status")
+  statementSnapshot     String                  @map("statement_snapshot")
+  rationaleSnapshot     String?                 @map("rationale_snapshot")
+  changeRequestId       String?                 @map("change_request_id") @db.Uuid
+  supersedesRevisionId  String?                 @map("supersedes_revision_id") @db.Uuid
+  approvedBy            String?                 @map("approved_by")
+  approvedAt            DateTime?               @map("approved_at")
+  baselineId            String?                 @map("baseline_id") @db.Uuid
+  requirement           Requirement             @relation("RequirementRevisionHistory", fields: [requirementId], references: [id], onDelete: Cascade)
+  changeRequest         ChangeRequest?          @relation(fields: [changeRequestId], references: [id])
+  supersedesRevision    RequirementRevision?    @relation("RequirementRevisionSupersedes", fields: [supersedesRevisionId], references: [id])
+  supersededByRevisions RequirementRevision[]   @relation("RequirementRevisionSupersedes")
+  baseline              Baseline?               @relation(fields: [baselineId], references: [id])
+  currentForRequirements Requirement[]          @relation("CurrentRequirementRevision")
+  sourcedAttributes     RequirementAttribute[]
+
+  @@unique([requirementId, revisionNo])
+  @@index([requirementId])
+  @@index([changeRequestId])
+  @@index([baselineId])
+  @@map("requirement_revisions")
+}
+
+model Baseline {
+  id                   String                @id @default(uuid()) @db.Uuid
+  baselineCode         String                @unique @map("baseline_code")
+  title                String
+  description          String?
+  phaseId              String?               @map("phase_id") @db.Uuid
+  frozenAt             DateTime?             @map("frozen_at")
+  approvedBy           String?               @map("approved_by")
+  phase                LifecyclePhase?       @relation(fields: [phaseId], references: [id])
+  items                BaselineItem[]
+  requirementRevisions RequirementRevision[]
+
+  @@index([phaseId])
+  @@map("baselines")
+}
+
+model BaselineItem {
+  id         String            @id @default(uuid()) @db.Uuid
+  baselineId String            @map("baseline_id") @db.Uuid
+  objectType ManagedObjectType @map("object_type")
+  objectId   String            @map("object_id") @db.Uuid
+  baseline   Baseline          @relation(fields: [baselineId], references: [id], onDelete: Cascade)
+
+  @@index([baselineId])
+  @@index([objectType, objectId])
+  @@map("baseline_items")
+}
+
+model Decision {
+  id                   String                @id @default(uuid()) @db.Uuid
+  decisionCode         String                @unique @map("decision_code")
+  title                String
+  decisionStatement    String                @map("decision_statement")
+  decisionType         String                @map("decision_type")
+  status               String
+  decisionDate         DateTime?             @map("decision_date") @db.Date
+  ownerOrgId           String?               @map("owner_org_id") @db.Uuid
+  ownerOrg             Organization?         @relation(fields: [ownerOrgId], references: [id])
+  decisionRequirements DecisionRequirement[]
+  arguments            DecisionArgument[]
+  resolvedConflicts    RequirementConflict[]
+
+  @@index([ownerOrgId])
+  @@map("decisions")
+}
+
+model DecisionRequirement {
+  id            String      @id @default(uuid()) @db.Uuid
+  decisionId    String      @map("decision_id") @db.Uuid
+  requirementId String      @map("requirement_id") @db.Uuid
+  usageType     String      @map("usage_type")
+  decision      Decision    @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([decisionId])
+  @@index([requirementId])
+  @@map("decision_requirements")
+}
+
+model DecisionArgument {
+  id               String    @id @default(uuid()) @db.Uuid
+  decisionId       String    @map("decision_id") @db.Uuid
+  argumentType     String    @map("argument_type")
+  argumentText     String    @map("argument_text")
+  linkedDocumentId String?   @map("linked_document_id") @db.Uuid
+  confidenceLevel  String?   @map("confidence_level")
+  decision         Decision  @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  linkedDocument   Document? @relation(fields: [linkedDocumentId], references: [id])
+
+  @@index([decisionId])
+  @@index([linkedDocumentId])
+  @@map("decision_arguments")
+}
+
+model RequirementConflict {
+  id                   String      @id @default(uuid()) @db.Uuid
+  requirementId1       String      @map("requirement_id_1") @db.Uuid
+  requirementId2       String      @map("requirement_id_2") @db.Uuid
+  conflictType         String      @map("conflict_type")
+  description          String
+  identifiedInReviewId String?     @map("identified_in_review_id") @db.Uuid
+  resolutionDecisionId String?     @map("resolution_decision_id") @db.Uuid
+  status               String
+  requirement1         Requirement @relation("RequirementConflictPrimary", fields: [requirementId1], references: [id], onDelete: Cascade)
+  requirement2         Requirement @relation("RequirementConflictSecondary", fields: [requirementId2], references: [id], onDelete: Cascade)
+  resolutionDecision   Decision?   @relation(fields: [resolutionDecisionId], references: [id])
+
+  @@index([requirementId1])
+  @@index([requirementId2])
+  @@index([resolutionDecisionId])
+  @@map("requirement_conflicts")
+}
+
+model Document {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  docCode              String                 @unique @map("doc_code")
+  title                String
+  docType              String                 @map("doc_type")
+  revision             String?
+  status               String?
+  ownerOrgId           String?                @map("owner_org_id") @db.Uuid
+  issueDate            DateTime?              @map("issue_date") @db.Date
+  fileUri              String?                @map("file_uri")
+  classification       String?
+  archivedFlag         Boolean                @default(false) @map("archived_flag")
+  ownerOrg             Organization?          @relation(fields: [ownerOrgId], references: [id])
+  sourcedRequirements  RequirementSource[]
+  constraints          Constraint[]
+  verificationEvidence VerificationEvidence[]
+  validationEvidence   ValidationCase[]
+  decisionArguments    DecisionArgument[]
+  links                DocumentLink[]
+
+  @@index([ownerOrgId])
+  @@map("documents")
+}
+
+model DocumentLink {
+  id               String            @id @default(uuid()) @db.Uuid
+  documentId       String            @map("document_id") @db.Uuid
+  linkedObjectType ManagedObjectType @map("linked_object_type")
+  linkedObjectId   String            @map("linked_object_id") @db.Uuid
+  linkType         String            @map("link_type")
+  document         Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([linkedObjectType, linkedObjectId])
+  @@index([linkType])
+  @@map("document_links")
+}
+
+model LifecyclePhase {
+  id                String             @id @default(uuid()) @db.Uuid
+  phaseCode         String             @unique @map("phase_code")
+  name              String
+  description       String?
+  sortOrder         Int                @map("sort_order")
+  isActive          Boolean            @default(true) @map("is_active")
+  requirements      Requirement[]
+  systemElements    SystemElement[]
+  verificationCases VerificationCase[]
+  baselines         Baseline[]
+  milestones        Milestone[]
+  wbsItems          WbsItem[]
+
+  @@map("lifecycle_phases")
+}
+
+model Milestone {
+  id                       String                    @id @default(uuid()) @db.Uuid
+  milestoneCode            String                    @unique @map("milestone_code")
+  title                    String
+  plannedDate              DateTime?                 @map("planned_date") @db.Date
+  actualDate               DateTime?                 @map("actual_date") @db.Date
+  phaseId                  String?                   @map("phase_id") @db.Uuid
+  description              String?
+  phase                    LifecyclePhase?           @relation(fields: [phaseId], references: [id])
+  requirementScheduleLinks RequirementScheduleLink[]
+
+  @@index([phaseId])
+  @@map("milestones")
+}
+
+model WbsItem {
+  id                       String                    @id @default(uuid()) @db.Uuid
+  wbsCode                  String                    @unique @map("wbs_code")
+  name                     String
+  parentWbsId              String?                   @map("parent_wbs_id") @db.Uuid
+  phaseId                  String?                   @map("phase_id") @db.Uuid
+  description              String?
+  parentWbs                WbsItem?                  @relation("WbsHierarchy", fields: [parentWbsId], references: [id])
+  childWbsItems            WbsItem[]                 @relation("WbsHierarchy")
+  phase                    LifecyclePhase?           @relation(fields: [phaseId], references: [id])
+  requirementScheduleLinks RequirementScheduleLink[]
+
+  @@index([phaseId])
+  @@map("wbs_items")
+}
+
+model RequirementScheduleLink {
+  id            String      @id @default(uuid()) @db.Uuid
+  requirementId String      @map("requirement_id") @db.Uuid
+  milestoneId   String?     @map("milestone_id") @db.Uuid
+  wbsItemId     String?     @map("wbs_item_id") @db.Uuid
+  neededByDate  DateTime?   @map("needed_by_date") @db.Date
+  linkType      String      @map("link_type")
+  requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  milestone     Milestone?  @relation(fields: [milestoneId], references: [id])
+  wbsItem       WbsItem?    @relation(fields: [wbsItemId], references: [id])
+
+  @@index([requirementId])
+  @@index([milestoneId])
+  @@index([wbsItemId])
+  @@map("requirement_schedule_links")
+}
+
+model Organization {
+  id                      String           @id @default(uuid()) @db.Uuid
+  orgCode                 String           @unique @map("org_code")
+  name                    String
+  orgType                 String           @map("org_type")
+  description             String?
+  isActive                Boolean          @default(true) @map("is_active")
+  ownedRequirements       Requirement[]
+  initiatedChangeRequests ChangeRequest[]
+  ownedConstraints        Constraint[]
+  ownedDecisions          Decision[]
+  ownedDocuments          Document[]
+  verificationCases       VerificationCase[]
+  responsibilities        Responsibility[]
+
+  @@map("organizations")
+}
+
+model Role {
+  id                  String           @id @default(uuid()) @db.Uuid
+  roleCode            String           @unique @map("role_code")
+  name                String
+  description         String?
+  isActive            Boolean          @default(true) @map("is_active")
+  primaryRequirements Requirement[]
+  responsibilities    Responsibility[]
+
+  @@map("roles")
+}
+
+model Responsibility {
+  id                 String            @id @default(uuid()) @db.Uuid
+  objectType         ManagedObjectType @map("object_type")
+  objectId           String            @map("object_id") @db.Uuid
+  organizationId     String            @map("organization_id") @db.Uuid
+  roleId             String            @map("role_id") @db.Uuid
+  responsibilityType String            @map("responsibility_type")
+  notes              String?
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role               Role              @relation(fields: [roleId], references: [id])
+
+  @@index([objectType, objectId])
+  @@index([organizationId])
+  @@index([roleId])
+  @@map("responsibilities")
+}

@@ -1,0 +1,2826 @@
+{
+  "schema_name": "Radioactive Waste Management RMS Ideal Multi-Table Schema",
+  "version": "1.0",
+  "language": "en",
+  "purpose": "Comprehensive reference schema for building a Requirement Management System (RMS) for radioactive waste management. This package is intended to support later database creation, metadata governance, seed loading, validation rules, and traceability design.",
+  "design_principles": [
+    "Requirements are managed as controlled records, not as simple text items.",
+    "Traceability must exist from external needs to implementation evidence.",
+    "Requirement hierarchy alone is not sufficient; relationship networks must also be supported.",
+    "Functional architecture, constraints, decisions, verification, change control, documents, and baselines are modeled as separate but linked entities.",
+    "Revision history must be preserved and never overwritten.",
+    "Documents and requirements are different objects and must be modeled separately.",
+    "The schema is intentionally normalized enough to support long-term nuclear lifecycle use."
+  ],
+  "entity_groups": {
+    "core_requirements": [
+      "requirement_levels",
+      "requirements",
+      "requirement_attributes",
+      "requirement_sources",
+      "requirement_relationships"
+    ],
+    "functional_architecture_and_allocation": [
+      "system_elements",
+      "system_element_interfaces",
+      "requirement_allocations"
+    ],
+    "constraints": [
+      "constraints",
+      "constraint_impacts"
+    ],
+    "verification_validation_and_compliance": [
+      "verification_methods",
+      "verification_cases",
+      "verification_evidence",
+      "validation_cases"
+    ],
+    "change_configuration_and_baselines": [
+      "change_requests",
+      "change_request_items",
+      "requirement_revisions",
+      "baselines",
+      "baseline_items"
+    ],
+    "decision_and_rationale": [
+      "decisions",
+      "decision_requirements",
+      "decision_arguments"
+    ],
+    "conflict_and_tradeoff_management": [
+      "requirement_conflicts"
+    ],
+    "documents_records_and_linking": [
+      "documents",
+      "document_links"
+    ],
+    "programme_structure_and_schedule": [
+      "lifecycle_phases",
+      "milestones",
+      "wbs_items",
+      "requirement_schedule_links"
+    ],
+    "organizations_roles_and_responsibilities": [
+      "organizations",
+      "roles",
+      "responsibilities"
+    ]
+  },
+  "tables": [
+    {
+      "table_name": "requirement_levels",
+      "table_purpose": "Controlled lookup table defining the standard requirement level model used by the RMS.",
+      "primary_key": "level_code",
+      "fields": [
+        {
+          "name": "level_code",
+          "type": "string",
+          "required": true,
+          "description": "Unique level identifier such as L0, L1, L2a, L2b, L3a, L3b, L4a, L4b, L5, or L6."
+        },
+        {
+          "name": "level_name",
+          "type": "string",
+          "required": true,
+          "description": "Human-readable name of the level."
+        },
+        {
+          "name": "short_definition",
+          "type": "text",
+          "required": true,
+          "description": "Short definition of what this level means."
+        },
+        {
+          "name": "detailed_explanation",
+          "type": "text",
+          "required": true,
+          "description": "Long explanation of what content belongs to the level."
+        },
+        {
+          "name": "typical_question_answered",
+          "type": "text",
+          "required": false,
+          "description": "Typical question that the level helps answer."
+        },
+        {
+          "name": "typical_sources",
+          "type": "json_array",
+          "required": false,
+          "description": "Typical source categories for the level."
+        },
+        {
+          "name": "expected_content",
+          "type": "json_array",
+          "required": false,
+          "description": "Typical content types expected at this level."
+        },
+        {
+          "name": "example_requirements",
+          "type": "json_array",
+          "required": false,
+          "description": "Illustrative example requirements for the level."
+        },
+        {
+          "name": "database_hint",
+          "type": "text",
+          "required": false,
+          "description": "Guidance for using this level in database design."
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "required": true,
+          "description": "Display and processing order of the level."
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether the level is active for use."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "level_name"
+        ],
+        [
+          "sort_order"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirements",
+      "table_purpose": "Core master table containing one record per controlled requirement.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "req_uid",
+          "type": "string",
+          "required": true,
+          "description": "Stable immutable requirement identifier used across revisions and traceability chains."
+        },
+        {
+          "name": "req_code",
+          "type": "string",
+          "required": true,
+          "description": "Human-readable requirement code following the chosen coding convention."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Short title of the requirement."
+        },
+        {
+          "name": "statement",
+          "type": "text",
+          "required": true,
+          "description": "Approved requirement statement in controlled language."
+        },
+        {
+          "name": "normalized_statement",
+          "type": "text",
+          "required": false,
+          "description": "Normalized or cleaned version of the statement for searching or analytics."
+        },
+        {
+          "name": "requirement_kind",
+          "type": "string",
+          "required": true,
+          "description": "Type of requirement, such as need, goal, function, characteristic, performance target, design input, design output specification, production specification, verification requirement, validation requirement, or constraint-like requirement."
+        },
+        {
+          "name": "level_code",
+          "type": "string",
+          "required": true,
+          "description": "Foreign key to requirement_levels.level_code."
+        },
+        {
+          "name": "domain_type",
+          "type": "string",
+          "required": true,
+          "description": "Domain category such as needs_domain, functional_architecture_interface, solution_domain, or implementation_documentation."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Lifecycle status of the requirement such as draft, proposed, approved, implemented, verified, retired, or obsolete."
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "required": false,
+          "description": "Relative priority such as critical, high, medium, or low."
+        },
+        {
+          "name": "criticality",
+          "type": "string",
+          "required": false,
+          "description": "Business or safety criticality of the requirement."
+        },
+        {
+          "name": "safety_significance",
+          "type": "string",
+          "required": false,
+          "description": "Safety significance class or grading information."
+        },
+        {
+          "name": "security_class",
+          "type": "string",
+          "required": false,
+          "description": "Information or security classification if applicable."
+        },
+        {
+          "name": "lifecycle_phase_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to lifecycle_phases.id indicating primary applicability phase."
+        },
+        {
+          "name": "owner_org_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to organizations.id indicating the owning organization."
+        },
+        {
+          "name": "responsible_role_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to roles.id indicating the primary responsible role."
+        },
+        {
+          "name": "approval_state",
+          "type": "string",
+          "required": false,
+          "description": "Approval state such as not_submitted, under_review, approved, conditionally_approved, or rejected."
+        },
+        {
+          "name": "effective_from",
+          "type": "date",
+          "required": false,
+          "description": "Date when the current requirement became effective."
+        },
+        {
+          "name": "effective_to",
+          "type": "date",
+          "required": false,
+          "description": "Date when the requirement ceased to be effective, if retired."
+        },
+        {
+          "name": "current_revision_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to requirement_revisions.id for the currently approved revision snapshot."
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether the requirement is currently active."
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "required": true,
+          "description": "Record creation timestamp."
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "required": true,
+          "description": "Last update timestamp."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "req_uid"
+        ],
+        [
+          "req_code"
+        ]
+      ],
+      "recommended_indexes": [
+        [
+          "level_code"
+        ],
+        [
+          "requirement_kind"
+        ],
+        [
+          "status"
+        ],
+        [
+          "owner_org_id"
+        ],
+        [
+          "lifecycle_phase_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirement_attributes",
+      "table_purpose": "Flexible extension table for structured requirement metadata that varies across facility types, waste streams, and project maturity.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "attribute_name",
+          "type": "string",
+          "required": true,
+          "description": "Name of the attribute, such as waste_class, barrier_element, host_rock_parameter, retrievability_flag, temperature_limit, or licensing_relevance."
+        },
+        {
+          "name": "attribute_type",
+          "type": "string",
+          "required": true,
+          "description": "Data type classification such as text, number, boolean, date, enum, or reference."
+        },
+        {
+          "name": "attribute_value_text",
+          "type": "text",
+          "required": false,
+          "description": "Text value if the attribute is textual."
+        },
+        {
+          "name": "attribute_value_number",
+          "type": "decimal",
+          "required": false,
+          "description": "Numeric value if the attribute is numeric."
+        },
+        {
+          "name": "attribute_value_unit",
+          "type": "string",
+          "required": false,
+          "description": "Unit attached to a numeric value."
+        },
+        {
+          "name": "attribute_value_date",
+          "type": "date",
+          "required": false,
+          "description": "Date value if relevant."
+        },
+        {
+          "name": "attribute_value_boolean",
+          "type": "boolean",
+          "required": false,
+          "description": "Boolean value if relevant."
+        },
+        {
+          "name": "source_revision_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to requirement_revisions.id indicating the revision from which the attribute value was taken or confirmed."
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "description": "Optional explanatory note."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id"
+        ],
+        [
+          "attribute_name"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirement_sources",
+      "table_purpose": "Traceability table linking a requirement to one or more originating or supporting sources.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "source_document_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to documents.id."
+        },
+        {
+          "name": "source_type",
+          "type": "string",
+          "required": true,
+          "description": "Category of source, such as law, regulation, standard, policy, safety_case, design_report, stakeholder_input, internal_decision, contract, or R&D_output."
+        },
+        {
+          "name": "source_locator",
+          "type": "string",
+          "required": false,
+          "description": "Precise locator such as article, clause, paragraph, page, table, appendix, section, or figure number."
+        },
+        {
+          "name": "quoted_text",
+          "type": "text",
+          "required": false,
+          "description": "Optional extracted text from the source that directly supports the requirement."
+        },
+        {
+          "name": "interpretation_note",
+          "type": "text",
+          "required": false,
+          "description": "Interpretation or translation note explaining how the source became a requirement."
+        },
+        {
+          "name": "is_primary_source",
+          "type": "boolean",
+          "required": true,
+          "description": "True if this is the primary governing source for the requirement."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id"
+        ],
+        [
+          "source_document_id"
+        ],
+        [
+          "source_type"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirement_relationships",
+      "table_purpose": "Network table capturing non-hierarchical and hierarchical relationships between requirements.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "from_requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id representing the source side of the relationship."
+        },
+        {
+          "name": "to_requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id representing the target side of the relationship."
+        },
+        {
+          "name": "relationship_type",
+          "type": "string",
+          "required": true,
+          "description": "Relationship category such as derives_from, decomposes_to, refines, constrains, conflicts_with, overlaps_with, duplicates, depends_on, supersedes, mitigates, justified_by, satisfied_by, verified_by, or validated_by."
+        },
+        {
+          "name": "relationship_strength",
+          "type": "string",
+          "required": false,
+          "description": "Optional strength or confidence descriptor such as strong, medium, weak, direct, or indirect."
+        },
+        {
+          "name": "rationale",
+          "type": "text",
+          "required": false,
+          "description": "Rationale for why the relationship exists."
+        },
+        {
+          "name": "created_in_change_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to change_requests.id if the relationship was created or modified through formal change control."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "from_requirement_id"
+        ],
+        [
+          "to_requirement_id"
+        ],
+        [
+          "relationship_type"
+        ]
+      ]
+    },
+    {
+      "table_name": "system_elements",
+      "table_purpose": "Functional architecture table defining the programme elements, facilities, subsystems, SSCs, processes, and organizational units to which requirements may be allocated.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "element_code",
+          "type": "string",
+          "required": true,
+          "description": "Human-readable code for the system element."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Element name."
+        },
+        {
+          "name": "element_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as programme, facility, subsystem, SSC, barrier_element, process, activity, organization_unit, document_product, or decision_product."
+        },
+        {
+          "name": "parent_element_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Self-reference to system_elements.id for hierarchy of architecture elements."
+        },
+        {
+          "name": "lifecycle_phase_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to lifecycle_phases.id indicating main phase relevance."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Description of the element and its role in the architecture."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "description": "Current status such as planned, active, decommissioned, retired, or conceptual."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "element_code"
+        ]
+      ],
+      "recommended_indexes": [
+        [
+          "parent_element_id"
+        ],
+        [
+          "element_type"
+        ],
+        [
+          "lifecycle_phase_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "system_element_interfaces",
+      "table_purpose": "Table defining interfaces and dependencies between architecture elements.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "from_element_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to system_elements.id for the source element."
+        },
+        {
+          "name": "to_element_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to system_elements.id for the target element."
+        },
+        {
+          "name": "interface_type",
+          "type": "string",
+          "required": true,
+          "description": "Interface category such as material_flow, information_flow, command_control, physical_connection, organizational_dependency, or schedule_dependency."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Description of the interface and its governing conditions."
+        },
+        {
+          "name": "governing_requirement_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to requirements.id for the requirement that governs the interface."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "from_element_id"
+        ],
+        [
+          "to_element_id"
+        ],
+        [
+          "governing_requirement_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirement_allocations",
+      "table_purpose": "Links requirements to functional architecture elements, showing where they are implemented, owned, or fulfilled.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "allocated_to_element_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to system_elements.id."
+        },
+        {
+          "name": "allocation_type",
+          "type": "string",
+          "required": true,
+          "description": "Allocation category such as primary, supporting, shared, inherited, or derived."
+        },
+        {
+          "name": "allocated_function",
+          "type": "text",
+          "required": false,
+          "description": "Function or role that the allocated element performs in satisfying the requirement."
+        },
+        {
+          "name": "allocated_characteristic",
+          "type": "text",
+          "required": false,
+          "description": "Characteristic or quality aspect being allocated."
+        },
+        {
+          "name": "target_value",
+          "type": "decimal",
+          "required": false,
+          "description": "Optional numeric target allocated to the element."
+        },
+        {
+          "name": "target_unit",
+          "type": "string",
+          "required": false,
+          "description": "Unit of the target value."
+        },
+        {
+          "name": "allocation_rationale",
+          "type": "text",
+          "required": false,
+          "description": "Explanation for the allocation decision."
+        },
+        {
+          "name": "allocation_status",
+          "type": "string",
+          "required": false,
+          "description": "Status such as proposed, accepted, implemented, or superseded."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id"
+        ],
+        [
+          "allocated_to_element_id"
+        ],
+        [
+          "allocation_type"
+        ]
+      ]
+    },
+    {
+      "table_name": "constraints",
+      "table_purpose": "Controlled table for external or internal boundary conditions that constrain design, operations, records, or programme execution.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "constraint_code",
+          "type": "string",
+          "required": true,
+          "description": "Human-readable constraint code."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Short title of the constraint."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "description": "Full statement of the limiting condition or assumption boundary."
+        },
+        {
+          "name": "constraint_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as waste_inventory, geology, site_boundary, licensed_decision, budget, schedule, political, societal, existing_facility, or environmental_condition."
+        },
+        {
+          "name": "source_document_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to documents.id for the source of the constraint."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Status such as active, superseded, under_review, or retired."
+        },
+        {
+          "name": "owner_org_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to organizations.id for the owning body."
+        },
+        {
+          "name": "current_revision_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Revision reference if constraints are version-controlled separately."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "constraint_code"
+        ]
+      ]
+    },
+    {
+      "table_name": "constraint_impacts",
+      "table_purpose": "Table describing how a constraint affects requirements, system elements, or both.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "constraint_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to constraints.id."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to requirements.id if the impact is on a requirement."
+        },
+        {
+          "name": "system_element_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to system_elements.id if the impact is on an architecture element."
+        },
+        {
+          "name": "impact_type",
+          "type": "string",
+          "required": true,
+          "description": "Impact type such as limits, informs, blocks, modifies, conditions, or requires_decision."
+        },
+        {
+          "name": "impact_description",
+          "type": "text",
+          "required": true,
+          "description": "Description of the impact."
+        },
+        {
+          "name": "severity",
+          "type": "string",
+          "required": false,
+          "description": "Optional impact severity such as high, medium, or low."
+        },
+        {
+          "name": "decision_needed_flag",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether a decision is needed to address the impact."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "constraint_id"
+        ],
+        [
+          "requirement_id"
+        ],
+        [
+          "system_element_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "verification_methods",
+      "table_purpose": "Controlled lookup table of standard verification methods.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "description": "Method code such as REVIEW, ANALYSIS, INSPECTION, TEST, DEMONSTRATION, AUDIT, MODELLING, or MONITORING."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Method name."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Definition and usage note for the method."
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether the method is currently active for use."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "code"
+        ],
+        [
+          "name"
+        ]
+      ]
+    },
+    {
+      "table_name": "verification_cases",
+      "table_purpose": "Formal verification records stating how a requirement will be verified and under what acceptance criteria.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "system_element_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to system_elements.id if verification applies to a specific element."
+        },
+        {
+          "name": "verification_method_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to verification_methods.id."
+        },
+        {
+          "name": "verification_title",
+          "type": "string",
+          "required": true,
+          "description": "Title of the verification case."
+        },
+        {
+          "name": "acceptance_criteria",
+          "type": "text",
+          "required": true,
+          "description": "Criteria that define successful verification."
+        },
+        {
+          "name": "planned_phase_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to lifecycle_phases.id for when verification is planned."
+        },
+        {
+          "name": "responsible_org_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to organizations.id for the verifying body."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Verification case status such as planned, in_progress, completed, passed, failed, or cancelled."
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": false,
+          "description": "Planned completion date."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id"
+        ],
+        [
+          "verification_method_id"
+        ],
+        [
+          "planned_phase_id"
+        ],
+        [
+          "status"
+        ]
+      ]
+    },
+    {
+      "table_name": "verification_evidence",
+      "table_purpose": "Evidence records demonstrating the outcome of a verification case.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "verification_case_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to verification_cases.id."
+        },
+        {
+          "name": "evidence_document_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to documents.id."
+        },
+        {
+          "name": "evidence_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as test_report, calculation_note, model_run, inspection_record, QA_record, commissioning_record, audit_report, or operational_monitoring_result."
+        },
+        {
+          "name": "result_summary",
+          "type": "text",
+          "required": false,
+          "description": "Summary of the outcome."
+        },
+        {
+          "name": "result_status",
+          "type": "string",
+          "required": true,
+          "description": "Result status such as pass, fail, partial, conditional_pass, or not_applicable."
+        },
+        {
+          "name": "reviewed_by",
+          "type": "string",
+          "required": false,
+          "description": "Reviewer name or reference."
+        },
+        {
+          "name": "review_date",
+          "type": "date",
+          "required": false,
+          "description": "Date of evidence review."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "verification_case_id"
+        ],
+        [
+          "evidence_document_id"
+        ],
+        [
+          "result_status"
+        ]
+      ]
+    },
+    {
+      "table_name": "validation_cases",
+      "table_purpose": "Records used to validate that a requirement or solution satisfies the intended need or stakeholder expectation, not just technical conformance.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "validation_question",
+          "type": "text",
+          "required": true,
+          "description": "Question that frames the validation objective."
+        },
+        {
+          "name": "stakeholder_basis",
+          "type": "text",
+          "required": false,
+          "description": "Stakeholder need or use context being validated."
+        },
+        {
+          "name": "method",
+          "type": "string",
+          "required": true,
+          "description": "Validation method such as review, simulation, demonstration, user_acceptance, operational_trial, or safety_argument_review."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Validation status such as planned, completed, accepted, rejected, or deferred."
+        },
+        {
+          "name": "evidence_document_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to documents.id holding validation evidence."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id"
+        ],
+        [
+          "status"
+        ]
+      ]
+    },
+    {
+      "table_name": "change_requests",
+      "table_purpose": "Formal change control table for proposed additions, modifications, deletions, reclassifications, and supersessions.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "cr_code",
+          "type": "string",
+          "required": true,
+          "description": "Change request code."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Short title of the change request."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "description": "Detailed description of the proposed change."
+        },
+        {
+          "name": "reason_type",
+          "type": "string",
+          "required": true,
+          "description": "Reason category such as new_regulation, design_change, site_data_update, safety_assessment_feedback, incident_lesson, stakeholder_request, or error_correction."
+        },
+        {
+          "name": "initiator_org_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to organizations.id for the initiating organization."
+        },
+        {
+          "name": "date_raised",
+          "type": "date",
+          "required": true,
+          "description": "Date the change was raised."
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "required": false,
+          "description": "Priority of the change request."
+        },
+        {
+          "name": "impact_summary",
+          "type": "text",
+          "required": false,
+          "description": "Summary of anticipated impacts."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Change request status such as proposed, screening, under_review, approved, rejected, implemented, or closed."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "cr_code"
+        ]
+      ],
+      "recommended_indexes": [
+        [
+          "reason_type"
+        ],
+        [
+          "status"
+        ],
+        [
+          "date_raised"
+        ]
+      ]
+    },
+    {
+      "table_name": "change_request_items",
+      "table_purpose": "Associative table listing the objects affected by a change request.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "change_request_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to change_requests.id."
+        },
+        {
+          "name": "object_type",
+          "type": "string",
+          "required": true,
+          "description": "Affected object type such as requirement, constraint, system_element, document, verification_case, or baseline."
+        },
+        {
+          "name": "object_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Identifier of the affected object in its home table."
+        },
+        {
+          "name": "proposed_action",
+          "type": "string",
+          "required": true,
+          "description": "Action such as add, modify, delete, supersede, reclassify, or link."
+        },
+        {
+          "name": "item_notes",
+          "type": "text",
+          "required": false,
+          "description": "Optional details for the affected item."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "change_request_id"
+        ],
+        [
+          "object_type",
+          "object_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirement_revisions",
+      "table_purpose": "Immutable revision history snapshots for requirements.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "revision_no",
+          "type": "string",
+          "required": true,
+          "description": "Revision identifier such as 0, 1, A, B, or semantic version notation depending on the chosen policy."
+        },
+        {
+          "name": "revision_status",
+          "type": "string",
+          "required": true,
+          "description": "Revision state such as draft, issued_for_review, approved, superseded, or withdrawn."
+        },
+        {
+          "name": "statement_snapshot",
+          "type": "text",
+          "required": true,
+          "description": "The exact requirement statement at this revision."
+        },
+        {
+          "name": "rationale_snapshot",
+          "type": "text",
+          "required": false,
+          "description": "Rationale text stored as it existed in this revision."
+        },
+        {
+          "name": "change_request_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to change_requests.id that triggered the revision."
+        },
+        {
+          "name": "supersedes_revision_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Self-reference to requirement_revisions.id for the prior revision."
+        },
+        {
+          "name": "approved_by",
+          "type": "string",
+          "required": false,
+          "description": "Approver reference."
+        },
+        {
+          "name": "approved_at",
+          "type": "datetime",
+          "required": false,
+          "description": "Approval timestamp."
+        },
+        {
+          "name": "baseline_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to baselines.id if this revision is frozen in a baseline."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id"
+        ],
+        [
+          "change_request_id"
+        ],
+        [
+          "baseline_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "baselines",
+      "table_purpose": "Controlled snapshots of approved project states such as licensing baselines, design baselines, or reference configuration baselines.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "baseline_code",
+          "type": "string",
+          "required": true,
+          "description": "Baseline code."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Title of the baseline."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Description of what the baseline freezes."
+        },
+        {
+          "name": "phase_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to lifecycle_phases.id."
+        },
+        {
+          "name": "frozen_at",
+          "type": "datetime",
+          "required": false,
+          "description": "Timestamp when the baseline was frozen."
+        },
+        {
+          "name": "approved_by",
+          "type": "string",
+          "required": false,
+          "description": "Approving authority or reference."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "baseline_code"
+        ]
+      ]
+    },
+    {
+      "table_name": "baseline_items",
+      "table_purpose": "Associative table linking baselines to the exact revisions or objects included in the baseline.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "baseline_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to baselines.id."
+        },
+        {
+          "name": "object_type",
+          "type": "string",
+          "required": true,
+          "description": "Object type included in the baseline such as requirement_revision, document, constraint, system_element, or verification_case."
+        },
+        {
+          "name": "object_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Identifier of the included object."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "baseline_id"
+        ],
+        [
+          "object_type",
+          "object_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "decisions",
+      "table_purpose": "Records of formal project, design, licensing, and conflict-resolution decisions that influence requirements and implementation.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "decision_code",
+          "type": "string",
+          "required": true,
+          "description": "Decision code."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Decision title."
+        },
+        {
+          "name": "decision_statement",
+          "type": "text",
+          "required": true,
+          "description": "Formal statement of the decision."
+        },
+        {
+          "name": "decision_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as concept_selection, design_basis, acceptance, licensing, deviation, or conflict_resolution."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Decision status such as proposed, approved, rejected, or superseded."
+        },
+        {
+          "name": "decision_date",
+          "type": "date",
+          "required": false,
+          "description": "Date of the decision."
+        },
+        {
+          "name": "owner_org_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to organizations.id."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "decision_code"
+        ]
+      ]
+    },
+    {
+      "table_name": "decision_requirements",
+      "table_purpose": "Links decisions to requirements they consider, drive, modify, satisfy, or waive.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "decision_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to decisions.id."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "usage_type",
+          "type": "string",
+          "required": true,
+          "description": "Usage type such as considered, driving, impacted, satisfied, interpreted, or waived."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "decision_id"
+        ],
+        [
+          "requirement_id"
+        ],
+        [
+          "usage_type"
+        ]
+      ]
+    },
+    {
+      "table_name": "decision_arguments",
+      "table_purpose": "Structured reasoning elements attached to formal decisions.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "decision_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to decisions.id."
+        },
+        {
+          "name": "argument_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as assumption, claim, evidence, uncertainty, tradeoff, or justification."
+        },
+        {
+          "name": "argument_text",
+          "type": "text",
+          "required": true,
+          "description": "Text of the argument."
+        },
+        {
+          "name": "linked_document_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to documents.id supporting the argument."
+        },
+        {
+          "name": "confidence_level",
+          "type": "string",
+          "required": false,
+          "description": "Qualitative confidence such as high, medium, low, or graded categories used by the organization."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "decision_id"
+        ],
+        [
+          "argument_type"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirement_conflicts",
+      "table_purpose": "Formal record of conflicts or tradeoffs between requirements.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id_1",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id for the first requirement."
+        },
+        {
+          "name": "requirement_id_2",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id for the second requirement."
+        },
+        {
+          "name": "conflict_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as technical, regulatory, schedule, cost, safety, stakeholder, or information_management."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "description": "Description of the conflict or tradeoff."
+        },
+        {
+          "name": "identified_in_review_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Reference to a review-related document or decision if tracked that way."
+        },
+        {
+          "name": "resolution_decision_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to decisions.id if resolved through a formal decision."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "Status such as open, under_analysis, resolved, accepted_deviation, or closed."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id_1"
+        ],
+        [
+          "requirement_id_2"
+        ],
+        [
+          "status"
+        ]
+      ]
+    },
+    {
+      "table_name": "documents",
+      "table_purpose": "Controlled document register covering source documents, design outputs, procedures, evidence, and records.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "doc_code",
+          "type": "string",
+          "required": true,
+          "description": "Document code."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Document title."
+        },
+        {
+          "name": "doc_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as law, regulation, report, drawing, procedure, test_report, safety_case, calculation_note, contract, meeting_record, audit_report, or database_export."
+        },
+        {
+          "name": "revision",
+          "type": "string",
+          "required": false,
+          "description": "Document revision identifier."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "description": "Document status such as draft, approved, superseded, archived, or issued."
+        },
+        {
+          "name": "owner_org_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to organizations.id."
+        },
+        {
+          "name": "issue_date",
+          "type": "date",
+          "required": false,
+          "description": "Issue date of the document."
+        },
+        {
+          "name": "file_uri",
+          "type": "string",
+          "required": false,
+          "description": "URI, path, or storage reference to the document file."
+        },
+        {
+          "name": "classification",
+          "type": "string",
+          "required": false,
+          "description": "Security or document classification."
+        },
+        {
+          "name": "archived_flag",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether the document is archived."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "doc_code",
+          "revision"
+        ]
+      ],
+      "recommended_indexes": [
+        [
+          "doc_type"
+        ],
+        [
+          "status"
+        ],
+        [
+          "owner_org_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "document_links",
+      "table_purpose": "General-purpose linking table between documents and other RMS objects.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "document_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to documents.id."
+        },
+        {
+          "name": "linked_object_type",
+          "type": "string",
+          "required": true,
+          "description": "Linked object type such as requirement, verification_case, decision, change_request, baseline, system_element, or constraint."
+        },
+        {
+          "name": "linked_object_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Identifier of the linked object in its home table."
+        },
+        {
+          "name": "link_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as source_of, evidence_for, implements, records, supersedes, referenced_by, input_to, output_of, or governed_by."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "document_id"
+        ],
+        [
+          "linked_object_type",
+          "linked_object_id"
+        ],
+        [
+          "link_type"
+        ]
+      ]
+    },
+    {
+      "table_name": "lifecycle_phases",
+      "table_purpose": "Controlled list of programme and facility lifecycle phases.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "phase_code",
+          "type": "string",
+          "required": true,
+          "description": "Lifecycle phase code."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Lifecycle phase name such as policy, programme_setup, site_selection, characterization, concept_design, detailed_design, licensing, construction, commissioning, operation, closure, institutional_control, or decommissioning."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Description of the phase."
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "required": true,
+          "description": "Phase sequence order."
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether the phase is active for use."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "phase_code"
+        ],
+        [
+          "name"
+        ],
+        [
+          "sort_order"
+        ]
+      ]
+    },
+    {
+      "table_name": "milestones",
+      "table_purpose": "Programme milestone table used to connect requirements and verification timing to schedule commitments.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "milestone_code",
+          "type": "string",
+          "required": true,
+          "description": "Milestone code."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Milestone title."
+        },
+        {
+          "name": "planned_date",
+          "type": "date",
+          "required": false,
+          "description": "Planned milestone date."
+        },
+        {
+          "name": "actual_date",
+          "type": "date",
+          "required": false,
+          "description": "Actual milestone date."
+        },
+        {
+          "name": "phase_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to lifecycle_phases.id."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Optional milestone description."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "milestone_code"
+        ]
+      ]
+    },
+    {
+      "table_name": "wbs_items",
+      "table_purpose": "Work Breakdown Structure table for linking requirements to programme execution packages.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "wbs_code",
+          "type": "string",
+          "required": true,
+          "description": "WBS code."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "WBS item name."
+        },
+        {
+          "name": "parent_wbs_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Self-reference to wbs_items.id."
+        },
+        {
+          "name": "phase_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to lifecycle_phases.id."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Description of the work package or activity."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "wbs_code"
+        ]
+      ]
+    },
+    {
+      "table_name": "requirement_schedule_links",
+      "table_purpose": "Associative table linking requirements to milestones, WBS items, and timing expectations.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "requirement_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to requirements.id."
+        },
+        {
+          "name": "milestone_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to milestones.id."
+        },
+        {
+          "name": "wbs_item_id",
+          "type": "uuid",
+          "required": false,
+          "description": "Foreign key to wbs_items.id."
+        },
+        {
+          "name": "needed_by_date",
+          "type": "date",
+          "required": false,
+          "description": "Date by which the requirement should be implemented, verified, or addressed."
+        },
+        {
+          "name": "link_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as applies_in_phase, implemented_by_wbs, verified_by_milestone, or controlled_by_schedule."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "requirement_id"
+        ],
+        [
+          "milestone_id"
+        ],
+        [
+          "wbs_item_id"
+        ]
+      ]
+    },
+    {
+      "table_name": "organizations",
+      "table_purpose": "Controlled list of organizations participating in the programme, project, licensing process, or support functions.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "org_code",
+          "type": "string",
+          "required": true,
+          "description": "Organization code."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Organization name."
+        },
+        {
+          "name": "org_type",
+          "type": "string",
+          "required": true,
+          "description": "Type such as regulator, implementer, waste_producer, designer, supplier, QA, TSO, stakeholder_body, or contractor."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Description of the organization."
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether the organization is active."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "org_code"
+        ],
+        [
+          "name"
+        ]
+      ]
+    },
+    {
+      "table_name": "roles",
+      "table_purpose": "Controlled list of responsibility roles used across the RMS.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "role_code",
+          "type": "string",
+          "required": true,
+          "description": "Role code."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Role name such as owner, author, reviewer, approver, verifier, validator, configuration_manager, or informed_party."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "description": "Role description."
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "description": "Indicates whether the role is active."
+        }
+      ],
+      "recommended_unique_constraints": [
+        [
+          "role_code"
+        ],
+        [
+          "name"
+        ]
+      ]
+    },
+    {
+      "table_name": "responsibilities",
+      "table_purpose": "Associative table assigning organizations and roles to RMS objects.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "description": "Internal primary key."
+        },
+        {
+          "name": "object_type",
+          "type": "string",
+          "required": true,
+          "description": "Object type such as requirement, system_element, document, baseline, verification_case, or change_request."
+        },
+        {
+          "name": "object_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Identifier of the object in its home table."
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to organizations.id."
+        },
+        {
+          "name": "role_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Foreign key to roles.id."
+        },
+        {
+          "name": "responsibility_type",
+          "type": "string",
+          "required": true,
+          "description": "Specific responsibility type such as owner, author, reviewer, approver, verifier, validator, or informed_party."
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "description": "Optional note on the responsibility assignment."
+        }
+      ],
+      "recommended_indexes": [
+        [
+          "object_type",
+          "object_id"
+        ],
+        [
+          "organization_id"
+        ],
+        [
+          "role_id"
+        ]
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from_table": "requirements",
+      "from_field": "level_code",
+      "to_table": "requirement_levels",
+      "to_field": "level_code",
+      "cardinality": "many_to_one",
+      "description": "Each requirement belongs to one defined requirement level."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "lifecycle_phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have a primary lifecycle phase."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may be owned by one organization."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "responsible_role_id",
+      "to_table": "roles",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may reference a primary responsible role."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "current_revision_id",
+      "to_table": "requirement_revisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "The requirement points to its currently approved revision snapshot."
+    },
+    {
+      "from_table": "requirement_attributes",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Many attributes may belong to one requirement."
+    },
+    {
+      "from_table": "requirement_attributes",
+      "from_field": "source_revision_id",
+      "to_table": "requirement_revisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "An attribute may point to the revision that established it."
+    },
+    {
+      "from_table": "requirement_sources",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many sources."
+    },
+    {
+      "from_table": "requirement_sources",
+      "from_field": "source_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Each source link references one document."
+    },
+    {
+      "from_table": "requirement_relationships",
+      "from_field": "from_requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Relationship source requirement."
+    },
+    {
+      "from_table": "requirement_relationships",
+      "from_field": "to_requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Relationship target requirement."
+    },
+    {
+      "from_table": "requirement_relationships",
+      "from_field": "created_in_change_id",
+      "to_table": "change_requests",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Relationship may have been introduced through change control."
+    },
+    {
+      "from_table": "system_elements",
+      "from_field": "parent_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Self-referential hierarchy for functional architecture."
+    },
+    {
+      "from_table": "system_elements",
+      "from_field": "lifecycle_phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "System element may be associated with one lifecycle phase."
+    },
+    {
+      "from_table": "system_element_interfaces",
+      "from_field": "from_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Interface source element."
+    },
+    {
+      "from_table": "system_element_interfaces",
+      "from_field": "to_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Interface target element."
+    },
+    {
+      "from_table": "system_element_interfaces",
+      "from_field": "governing_requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Interface may be governed by a requirement."
+    },
+    {
+      "from_table": "requirement_allocations",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One requirement may be allocated many times."
+    },
+    {
+      "from_table": "requirement_allocations",
+      "from_field": "allocated_to_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Allocations target system elements."
+    },
+    {
+      "from_table": "constraints",
+      "from_field": "source_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint may originate from one document."
+    },
+    {
+      "from_table": "constraints",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint may be owned by one organization."
+    },
+    {
+      "from_table": "constraint_impacts",
+      "from_field": "constraint_id",
+      "to_table": "constraints",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Many impacts may stem from one constraint."
+    },
+    {
+      "from_table": "constraint_impacts",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint impact may reference one requirement."
+    },
+    {
+      "from_table": "constraint_impacts",
+      "from_field": "system_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint impact may reference one system element."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many verification cases."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "system_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A verification case may apply to a specific system element."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "verification_method_id",
+      "to_table": "verification_methods",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Each verification case uses one verification method."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "planned_phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Verification may be planned in one lifecycle phase."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "responsible_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Verification may be assigned to one organization."
+    },
+    {
+      "from_table": "verification_evidence",
+      "from_field": "verification_case_id",
+      "to_table": "verification_cases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One verification case may have many evidence records."
+    },
+    {
+      "from_table": "verification_evidence",
+      "from_field": "evidence_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Each evidence record references one document."
+    },
+    {
+      "from_table": "validation_cases",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many validation cases."
+    },
+    {
+      "from_table": "validation_cases",
+      "from_field": "evidence_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Validation may reference one evidence document."
+    },
+    {
+      "from_table": "change_requests",
+      "from_field": "initiator_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A change request may be initiated by one organization."
+    },
+    {
+      "from_table": "change_request_items",
+      "from_field": "change_request_id",
+      "to_table": "change_requests",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A change request may affect many items."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One requirement may have many revisions."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "change_request_id",
+      "to_table": "change_requests",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A revision may be triggered by one change request."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "supersedes_revision_id",
+      "to_table": "requirement_revisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Revision chain self-reference."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "baseline_id",
+      "to_table": "baselines",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Revision may be frozen in a baseline."
+    },
+    {
+      "from_table": "baselines",
+      "from_field": "phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A baseline may belong to a lifecycle phase."
+    },
+    {
+      "from_table": "baseline_items",
+      "from_field": "baseline_id",
+      "to_table": "baselines",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A baseline may include many items."
+    },
+    {
+      "from_table": "decisions",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision may be owned by one organization."
+    },
+    {
+      "from_table": "decision_requirements",
+      "from_field": "decision_id",
+      "to_table": "decisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision may reference many requirements."
+    },
+    {
+      "from_table": "decision_requirements",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may be linked to many decisions."
+    },
+    {
+      "from_table": "decision_arguments",
+      "from_field": "decision_id",
+      "to_table": "decisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision may have many structured arguments."
+    },
+    {
+      "from_table": "decision_arguments",
+      "from_field": "linked_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision argument may be supported by one document."
+    },
+    {
+      "from_table": "requirement_conflicts",
+      "from_field": "requirement_id_1",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "First requirement in a conflict pair."
+    },
+    {
+      "from_table": "requirement_conflicts",
+      "from_field": "requirement_id_2",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Second requirement in a conflict pair."
+    },
+    {
+      "from_table": "requirement_conflicts",
+      "from_field": "resolution_decision_id",
+      "to_table": "decisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Conflict may be resolved by a formal decision."
+    },
+    {
+      "from_table": "documents",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A document may be owned by one organization."
+    },
+    {
+      "from_table": "document_links",
+      "from_field": "document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One document may be linked to many RMS objects."
+    },
+    {
+      "from_table": "milestones",
+      "from_field": "phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A milestone may belong to a lifecycle phase."
+    },
+    {
+      "from_table": "wbs_items",
+      "from_field": "parent_wbs_id",
+      "to_table": "wbs_items",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Self-referential WBS hierarchy."
+    },
+    {
+      "from_table": "wbs_items",
+      "from_field": "phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A WBS item may belong to a lifecycle phase."
+    },
+    {
+      "from_table": "requirement_schedule_links",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many schedule links."
+    },
+    {
+      "from_table": "requirement_schedule_links",
+      "from_field": "milestone_id",
+      "to_table": "milestones",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A schedule link may point to one milestone."
+    },
+    {
+      "from_table": "requirement_schedule_links",
+      "from_field": "wbs_item_id",
+      "to_table": "wbs_items",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A schedule link may point to one WBS item."
+    },
+    {
+      "from_table": "responsibilities",
+      "from_field": "organization_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One organization may have many responsibility assignments."
+    },
+    {
+      "from_table": "responsibilities",
+      "from_field": "role_id",
+      "to_table": "roles",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One role may be assigned many times."
+    }
+  ],
+  "recommended_seed_lookups": {
+    "requirement_levels": [
+      {
+        "level_code": "L0",
+        "level_name": "External High-Level Goals, Needs, and Expectations",
+        "sort_order": 1
+      },
+      {
+        "level_code": "L1",
+        "level_name": "Programme or System Goals and Principles",
+        "sort_order": 2
+      },
+      {
+        "level_code": "L2a",
+        "level_name": "Functions and Sub-Functions",
+        "sort_order": 3
+      },
+      {
+        "level_code": "L2b",
+        "level_name": "Quality Characteristics and Non-Functional Requirements",
+        "sort_order": 4
+      },
+      {
+        "level_code": "L3a",
+        "level_name": "Performance Targets for Functions",
+        "sort_order": 5
+      },
+      {
+        "level_code": "L3b",
+        "level_name": "Quality Targets for Characteristics",
+        "sort_order": 6
+      },
+      {
+        "level_code": "L4a",
+        "level_name": "Design Input Requirements",
+        "sort_order": 7
+      },
+      {
+        "level_code": "L4b",
+        "level_name": "Design Output Specifications",
+        "sort_order": 8
+      },
+      {
+        "level_code": "L5",
+        "level_name": "Production, Construction, Implementation, and Verification Specifications",
+        "sort_order": 9
+      },
+      {
+        "level_code": "L6",
+        "level_name": "Implemented Product Documentation and Compliance Evidence",
+        "sort_order": 10
+      }
+    ],
+    "verification_methods": [
+      {
+        "code": "REVIEW",
+        "name": "Review"
+      },
+      {
+        "code": "ANALYSIS",
+        "name": "Analysis"
+      },
+      {
+        "code": "INSPECTION",
+        "name": "Inspection"
+      },
+      {
+        "code": "TEST",
+        "name": "Test"
+      },
+      {
+        "code": "DEMONSTRATION",
+        "name": "Demonstration"
+      },
+      {
+        "code": "AUDIT",
+        "name": "Audit"
+      },
+      {
+        "code": "MODELLING",
+        "name": "Modelling"
+      },
+      {
+        "code": "MONITORING",
+        "name": "Monitoring"
+      }
+    ],
+    "lifecycle_phases": [
+      {
+        "phase_code": "POL",
+        "name": "Policy",
+        "sort_order": 1
+      },
+      {
+        "phase_code": "PRG",
+        "name": "Programme Setup",
+        "sort_order": 2
+      },
+      {
+        "phase_code": "SS",
+        "name": "Site Selection",
+        "sort_order": 3
+      },
+      {
+        "phase_code": "SC",
+        "name": "Characterization",
+        "sort_order": 4
+      },
+      {
+        "phase_code": "CD",
+        "name": "Concept Design",
+        "sort_order": 5
+      },
+      {
+        "phase_code": "DD",
+        "name": "Detailed Design",
+        "sort_order": 6
+      },
+      {
+        "phase_code": "LIC",
+        "name": "Licensing",
+        "sort_order": 7
+      },
+      {
+        "phase_code": "CON",
+        "name": "Construction",
+        "sort_order": 8
+      },
+      {
+        "phase_code": "COM",
+        "name": "Commissioning",
+        "sort_order": 9
+      },
+      {
+        "phase_code": "OP",
+        "name": "Operation",
+        "sort_order": 10
+      },
+      {
+        "phase_code": "CLO",
+        "name": "Closure",
+        "sort_order": 11
+      },
+      {
+        "phase_code": "IC",
+        "name": "Institutional Control",
+        "sort_order": 12
+      },
+      {
+        "phase_code": "DEC",
+        "name": "Decommissioning",
+        "sort_order": 13
+      }
+    ],
+    "roles": [
+      {
+        "role_code": "OWNER",
+        "name": "Owner"
+      },
+      {
+        "role_code": "AUTHOR",
+        "name": "Author"
+      },
+      {
+        "role_code": "REVIEWER",
+        "name": "Reviewer"
+      },
+      {
+        "role_code": "APPROVER",
+        "name": "Approver"
+      },
+      {
+        "role_code": "VERIFIER",
+        "name": "Verifier"
+      },
+      {
+        "role_code": "VALIDATOR",
+        "name": "Validator"
+      },
+      {
+        "role_code": "CFG_MGR",
+        "name": "Configuration Manager"
+      },
+      {
+        "role_code": "INFO",
+        "name": "Informed Party"
+      }
+    ]
+  },
+  "implementation_notes": [
+    "Polymorphic tables such as change_request_items, document_links, baseline_items, and responsibilities intentionally use object_type plus object_id instead of rigid foreign keys to every table. In a strict relational implementation, this may be enforced in application logic or replaced with multiple specialized link tables.",
+    "For SQL systems that do not handle json_array elegantly, arrays may be normalized into child tables.",
+    "For initial implementation, the most critical tables are requirements, requirement_levels, requirement_sources, requirement_relationships, system_elements, requirement_allocations, verification_cases, verification_evidence, change_requests, requirement_revisions, documents, and organizations.",
+    "The schema is suitable for conversion into PostgreSQL, SQL Server, MySQL, SQLite, NocoDB, or document-oriented systems with minor adaptation."
+  ]
+}

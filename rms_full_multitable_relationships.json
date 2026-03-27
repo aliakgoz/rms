@@ -1,0 +1,479 @@
+{
+  "schema_name": "Radioactive Waste Management RMS Ideal Multi-Table Schema",
+  "version": "1.0",
+  "relationship_count": 59,
+  "relationships": [
+    {
+      "from_table": "requirements",
+      "from_field": "level_code",
+      "to_table": "requirement_levels",
+      "to_field": "level_code",
+      "cardinality": "many_to_one",
+      "description": "Each requirement belongs to one defined requirement level."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "lifecycle_phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have a primary lifecycle phase."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may be owned by one organization."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "responsible_role_id",
+      "to_table": "roles",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may reference a primary responsible role."
+    },
+    {
+      "from_table": "requirements",
+      "from_field": "current_revision_id",
+      "to_table": "requirement_revisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "The requirement points to its currently approved revision snapshot."
+    },
+    {
+      "from_table": "requirement_attributes",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Many attributes may belong to one requirement."
+    },
+    {
+      "from_table": "requirement_attributes",
+      "from_field": "source_revision_id",
+      "to_table": "requirement_revisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "An attribute may point to the revision that established it."
+    },
+    {
+      "from_table": "requirement_sources",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many sources."
+    },
+    {
+      "from_table": "requirement_sources",
+      "from_field": "source_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Each source link references one document."
+    },
+    {
+      "from_table": "requirement_relationships",
+      "from_field": "from_requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Relationship source requirement."
+    },
+    {
+      "from_table": "requirement_relationships",
+      "from_field": "to_requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Relationship target requirement."
+    },
+    {
+      "from_table": "requirement_relationships",
+      "from_field": "created_in_change_id",
+      "to_table": "change_requests",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Relationship may have been introduced through change control."
+    },
+    {
+      "from_table": "system_elements",
+      "from_field": "parent_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Self-referential hierarchy for functional architecture."
+    },
+    {
+      "from_table": "system_elements",
+      "from_field": "lifecycle_phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "System element may be associated with one lifecycle phase."
+    },
+    {
+      "from_table": "system_element_interfaces",
+      "from_field": "from_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Interface source element."
+    },
+    {
+      "from_table": "system_element_interfaces",
+      "from_field": "to_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Interface target element."
+    },
+    {
+      "from_table": "system_element_interfaces",
+      "from_field": "governing_requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Interface may be governed by a requirement."
+    },
+    {
+      "from_table": "requirement_allocations",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One requirement may be allocated many times."
+    },
+    {
+      "from_table": "requirement_allocations",
+      "from_field": "allocated_to_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Allocations target system elements."
+    },
+    {
+      "from_table": "constraints",
+      "from_field": "source_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint may originate from one document."
+    },
+    {
+      "from_table": "constraints",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint may be owned by one organization."
+    },
+    {
+      "from_table": "constraint_impacts",
+      "from_field": "constraint_id",
+      "to_table": "constraints",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Many impacts may stem from one constraint."
+    },
+    {
+      "from_table": "constraint_impacts",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint impact may reference one requirement."
+    },
+    {
+      "from_table": "constraint_impacts",
+      "from_field": "system_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A constraint impact may reference one system element."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many verification cases."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "system_element_id",
+      "to_table": "system_elements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A verification case may apply to a specific system element."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "verification_method_id",
+      "to_table": "verification_methods",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Each verification case uses one verification method."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "planned_phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Verification may be planned in one lifecycle phase."
+    },
+    {
+      "from_table": "verification_cases",
+      "from_field": "responsible_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Verification may be assigned to one organization."
+    },
+    {
+      "from_table": "verification_evidence",
+      "from_field": "verification_case_id",
+      "to_table": "verification_cases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One verification case may have many evidence records."
+    },
+    {
+      "from_table": "verification_evidence",
+      "from_field": "evidence_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Each evidence record references one document."
+    },
+    {
+      "from_table": "validation_cases",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many validation cases."
+    },
+    {
+      "from_table": "validation_cases",
+      "from_field": "evidence_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Validation may reference one evidence document."
+    },
+    {
+      "from_table": "change_requests",
+      "from_field": "initiator_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A change request may be initiated by one organization."
+    },
+    {
+      "from_table": "change_request_items",
+      "from_field": "change_request_id",
+      "to_table": "change_requests",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A change request may affect many items."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One requirement may have many revisions."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "change_request_id",
+      "to_table": "change_requests",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A revision may be triggered by one change request."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "supersedes_revision_id",
+      "to_table": "requirement_revisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Revision chain self-reference."
+    },
+    {
+      "from_table": "requirement_revisions",
+      "from_field": "baseline_id",
+      "to_table": "baselines",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Revision may be frozen in a baseline."
+    },
+    {
+      "from_table": "baselines",
+      "from_field": "phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A baseline may belong to a lifecycle phase."
+    },
+    {
+      "from_table": "baseline_items",
+      "from_field": "baseline_id",
+      "to_table": "baselines",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A baseline may include many items."
+    },
+    {
+      "from_table": "decisions",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision may be owned by one organization."
+    },
+    {
+      "from_table": "decision_requirements",
+      "from_field": "decision_id",
+      "to_table": "decisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision may reference many requirements."
+    },
+    {
+      "from_table": "decision_requirements",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may be linked to many decisions."
+    },
+    {
+      "from_table": "decision_arguments",
+      "from_field": "decision_id",
+      "to_table": "decisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision may have many structured arguments."
+    },
+    {
+      "from_table": "decision_arguments",
+      "from_field": "linked_document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A decision argument may be supported by one document."
+    },
+    {
+      "from_table": "requirement_conflicts",
+      "from_field": "requirement_id_1",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "First requirement in a conflict pair."
+    },
+    {
+      "from_table": "requirement_conflicts",
+      "from_field": "requirement_id_2",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Second requirement in a conflict pair."
+    },
+    {
+      "from_table": "requirement_conflicts",
+      "from_field": "resolution_decision_id",
+      "to_table": "decisions",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Conflict may be resolved by a formal decision."
+    },
+    {
+      "from_table": "documents",
+      "from_field": "owner_org_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A document may be owned by one organization."
+    },
+    {
+      "from_table": "document_links",
+      "from_field": "document_id",
+      "to_table": "documents",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One document may be linked to many RMS objects."
+    },
+    {
+      "from_table": "milestones",
+      "from_field": "phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A milestone may belong to a lifecycle phase."
+    },
+    {
+      "from_table": "wbs_items",
+      "from_field": "parent_wbs_id",
+      "to_table": "wbs_items",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "Self-referential WBS hierarchy."
+    },
+    {
+      "from_table": "wbs_items",
+      "from_field": "phase_id",
+      "to_table": "lifecycle_phases",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A WBS item may belong to a lifecycle phase."
+    },
+    {
+      "from_table": "requirement_schedule_links",
+      "from_field": "requirement_id",
+      "to_table": "requirements",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A requirement may have many schedule links."
+    },
+    {
+      "from_table": "requirement_schedule_links",
+      "from_field": "milestone_id",
+      "to_table": "milestones",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A schedule link may point to one milestone."
+    },
+    {
+      "from_table": "requirement_schedule_links",
+      "from_field": "wbs_item_id",
+      "to_table": "wbs_items",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "A schedule link may point to one WBS item."
+    },
+    {
+      "from_table": "responsibilities",
+      "from_field": "organization_id",
+      "to_table": "organizations",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One organization may have many responsibility assignments."
+    },
+    {
+      "from_table": "responsibilities",
+      "from_field": "role_id",
+      "to_table": "roles",
+      "to_field": "id",
+      "cardinality": "many_to_one",
+      "description": "One role may be assigned many times."
+    }
+  ]
+}
