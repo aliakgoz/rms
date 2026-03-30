@@ -1,18 +1,20 @@
+"use client";
+
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
 import { SchemaWorkbench } from "@/components/workbench/schema-workbench";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData, useRmsSummary } from "@/lib/rms/provider";
 
 export default function WorkbenchPage() {
-  const { db } = getDashboardData();
-  const totalRecords = Object.values(db.recordsByTable).reduce((sum, items) => sum + items.length, 0);
+  const { db, connected } = useRmsData();
+  const { totalRecords } = useRmsSummary();
 
   return (
     <>
       <PageHero
         eyebrow="Data entry"
         title="Schema workbench"
-        description="Tum JSON tablo gruplari ve iliskiler bu ekranda kullanici dostu veri giris akisina baglandi. Requirement icin rehberli form var, diger tum tablolar da burada kaydedilebilir."
+        description="Tum JSON tablo gruplari ve iliskiler bu ekranda kullanici dostu veri giris akisina baglandi. Kayitlar secili yerel rms-data.json dosyasina yazilir."
         right={
           <>
             <div className="hero-chip">
@@ -24,7 +26,7 @@ export default function WorkbenchPage() {
               <div className="muted">Lookup and linking hints active.</div>
             </div>
             <div className="hero-chip">
-              <strong>{totalRecords} stored records</strong>
+              <strong>{connected ? `${totalRecords} stored records` : "Connect folder to write"}</strong>
               <div className="muted">Across all table buckets.</div>
             </div>
           </>

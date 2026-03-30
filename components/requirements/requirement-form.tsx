@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRmsData } from "@/lib/rms/provider";
 
 type Level = {
   level_code: string;
@@ -17,8 +17,9 @@ const PRIORITY_OPTIONS = ["critical", "high", "medium", "low"];
 const APPROVAL_OPTIONS = ["not_submitted", "under_review", "approved", "conditionally_approved", "rejected"];
 
 export function RequirementForm({ levels }: { levels: Level[] }) {
-  const router = useRouter();
+  const { connected, createRequirementRecord } = useRmsData();
   const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
   const [selectedLevel, setSelectedLevel] = useState(levels[0]?.level_code || "");
 
   const activeLevel = useMemo(
@@ -28,13 +29,16 @@ export function RequirementForm({ levels }: { levels: Level[] }) {
 
   async function onSubmit(formData: FormData) {
     setIsSaving(true);
+    setMessage("");
     try {
-      await fetch("/api/requirements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(formData.entries()))
-      });
-      router.refresh();
+      const requirement = await createRequirementRecord(
+        Object.fromEntries(formData.entries()) as Partial<Record<string, string>>
+      );
+      setMessage(`${requirement.req_code} kaydedildi.`);
+      return true;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Kayit sirasinda hata olustu.");
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -48,6 +52,11 @@ export function RequirementForm({ levels }: { levels: Level[] }) {
           Once amaci net yazin, sonra kontrol edilebilir bir statement girin. Belirsiz ifadeler yerine olculebilir ve
           dogrulanabilir cumleler kullanin.
         </p>
+        {!connected ? (
+          <p className="muted">
+            Kayit olusturmadan once sol menuden veya dashboard'dan DivvySync klasorunu baglayin.
+          </p>
+        ) : null}
         <div className="pill-row">
           <span className="tag">Ornek kod: REQ-SAF-014</span>
           <span className="tag slate">Ornek UID: UID-00014</span>
@@ -57,8 +66,14 @@ export function RequirementForm({ levels }: { levels: Level[] }) {
 
       <form
         className="form-grid"
-        action={async (formData) => {
-          await onSubmit(formData);
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const saved = await onSubmit(new FormData(form));
+          if (saved) {
+            form.reset();
+            setSelectedLevel(levels[0]?.level_code || "");
+          }
         }}
       >
         <div className="full form-section-title">Kimlik ve kapsam</div>
@@ -181,9 +196,10 @@ export function RequirementForm({ levels }: { levels: Level[] }) {
         </label>
 
         <div className="full form-actions">
-          <button className="primary" type="submit" disabled={isSaving}>
+          <button className="primary" type="submit" disabled={isSaving || !connected}>
             {isSaving ? "Kaydediliyor..." : "Create Requirement"}
           </button>
+          {message ? <span className="form-message">{message}</span> : null}
         </div>
       </form>
     </div>

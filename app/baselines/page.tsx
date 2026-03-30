@@ -1,9 +1,11 @@
+"use client";
+
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData } from "@/lib/rms/provider";
 
 export default function BaselinesPage() {
-  const { db } = getDashboardData();
+  const { db } = useRmsData();
   const baselineTables = db.schemaTables.filter(
     (table) => table.table_name.includes("baseline") || table.table_name.includes("change")
   );

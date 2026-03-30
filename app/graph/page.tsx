@@ -1,9 +1,11 @@
+"use client";
+
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData } from "@/lib/rms/provider";
 
 export default function GraphPage() {
-  const { db } = getDashboardData();
+  const { db } = useRmsData();
   const largestTables = [...db.schemaTables].sort((a, b) => b.fields.length - a.fields.length).slice(0, 8);
 
   return (

@@ -1,9 +1,11 @@
+"use client";
+
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData } from "@/lib/rms/provider";
 
 export default function DocumentsPage() {
-  const { db } = getDashboardData();
+  const { db } = useRmsData();
   const docTables = db.schemaTables.filter((table) => table.table_name.includes("document"));
   const docLinks = db.relationships.filter((item) => item.from_table.includes("document") || item.to_table.includes("document"));
 

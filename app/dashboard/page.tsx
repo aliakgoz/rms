@@ -1,31 +1,70 @@
+"use client";
+
+import { useState } from "react";
+
+import { StorageConnectionPanel } from "@/components/rms/storage-connection-panel";
+import { SyncStatusPanel } from "@/components/rms/sync-status-panel";
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
-import { getDashboardData } from "@/lib/rms/store";
+import {
+  buildSyncAlerts,
+  describeConnectionTone,
+  describeSyncState,
+  formatLagLabel,
+  formatRmsTimestamp,
+  useRmsData,
+  useRmsSummary
+} from "@/lib/rms/provider";
 
 export default function DashboardPage() {
-  const { db, dbPath, groupedByLevel, relationshipByTable } = getDashboardData();
-  const topRelationshipTables = Object.entries(relationshipByTable).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const dominantLevels = Object.entries(groupedByLevel).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const {
+    db,
+    connected,
+    status,
+    errorMessage,
+    connectFolder,
+    reconnectFolder,
+    refreshFromDisk
+  } = useRmsData();
+  const { groupedByLevel, relationshipByTable } = useRmsSummary();
+  const [isRunningAction, setIsRunningAction] = useState(false);
+
+  async function run(action: () => Promise<void>) {
+    setIsRunningAction(true);
+    try {
+      await action();
+    } finally {
+      setIsRunningAction(false);
+    }
+  }
+
+  const topRelationshipTables = Object.entries(relationshipByTable)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const dominantLevels = Object.entries(groupedByLevel)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const alerts = buildSyncAlerts(status, errorMessage);
 
   return (
     <>
       <PageHero
         eyebrow="RMS cockpit"
         title="Traceability-first workspace"
-        description="The rebuilt interface again behaves like a structured RMS console: metrics, controlled records, traceability, configuration, evidence and metadata all have dedicated views."
+        description="Static web uygulamasi tarayicidan yerel DivvySync klasorundeki rms-data.json dosyasini acip yazar. Senkronizasyonun tamami DivvySync tarafinda kalir."
         right={
           <>
             <div className="hero-chip">
               <strong>{db.schemaTables.length} schema tables</strong>
-              <div className="muted">Loaded from the full multitable schema package.</div>
+              <div className="muted">Bundled schema metadata always available.</div>
             </div>
             <div className="hero-chip">
               <strong>{db.relationships.length} table relationships</strong>
-              <div className="muted">Used to drive graph and traceability views.</div>
+              <div className="muted">Traceability graph ships with the app.</div>
             </div>
             <div className="hero-chip">
-              <strong>{db.requirementLevels.length} requirement levels</strong>
-              <div className="muted">Seeded directly from the official level catalogue.</div>
+              <strong>{connected ? "Folder connected" : "Awaiting folder bind"}</strong>
+              <div className="muted">{describeSyncState(status)}</div>
             </div>
           </>
         }
@@ -33,12 +72,48 @@ export default function DashboardPage() {
 
       <KpiStrip
         items={[
-          { label: "Requirements", value: db.requirements.length, note: "controlled records" },
+          { label: "Requirements", value: db.requirements.length, note: "local shared-file records" },
           { label: "Tables", value: db.schemaTables.length, note: "schema entities" },
           { label: "Relationships", value: db.relationships.length, note: "traceability edges" },
           { label: "Levels", value: db.requirementLevels.length, note: "requirement taxonomy" }
         ]}
       />
+
+      <section className="page-grid wide">
+        <StorageConnectionPanel
+          connected={connected}
+          folderName={status.directoryName}
+          folderPath={connected ? "Browser-granted local DivvySync folder" : "Folder access not granted yet."}
+          fileName={status.fileName}
+          filePath={connected && status.directoryName ? `${status.directoryName}/${status.fileName}` : undefined}
+          providerLabel="DivvySync"
+          modeLabel="Local JSON file"
+          lastBoundAtLabel={formatRmsTimestamp(status.lastBoundAt)}
+          note={
+            connected
+              ? "Tarayici tam klasor yolunu vermez. Uygulama secilen yerel klasorde rms-data.json dosyasini kullanir."
+              : "Ilk kullanimda DivvySync klasorunu secin. Uygulama rms-data.json yoksa olusturur."
+          }
+          onConnectFolder={() => run(connectFolder)}
+          onReconnect={() => run(reconnectFolder)}
+          onRefresh={() => run(refreshFromDisk)}
+          syncState={describeConnectionTone(status)}
+          connectLabel={isRunningAction ? "Calisiyor..." : connected ? "Klasoru degistir" : "Klasoru Bagla"}
+          reconnectLabel="Yeniden bagla"
+          refreshLabel="Diskten yenile"
+        />
+
+        <SyncStatusPanel
+          lastLocalSaveAtLabel={formatRmsTimestamp(status.lastSavedAt)}
+          lastSeenFileChangeAtLabel={formatRmsTimestamp(status.lastObservedFileModifiedAt)}
+          lastSyncAtLabel={formatRmsTimestamp(status.lastExternalChangeAt || status.lastObservedFileModifiedAt)}
+          externalChangeDetected={status.externalChangeDetected}
+          pendingWriteCount={status.pendingLocalChanges ? 1 : 0}
+          syncLagLabel={formatLagLabel(status.lastObservedFileModifiedAt)}
+          syncStateLabel={describeSyncState(status)}
+          alerts={alerts}
+        />
+      </section>
 
       <section className="split">
         <div className="panel">
@@ -79,12 +154,12 @@ export default function DashboardPage() {
           <div className="panel">
             <div className="page-head">
               <h2>Operational Store</h2>
-              <p>Shared data source used by the current runtime.</p>
+              <p>Browser-side local file binding summary.</p>
             </div>
             <div className="list">
               <article className="list-card">
-                <strong>Shared path</strong>
-                <p className="muted"><code>{dbPath}</code></p>
+                <strong>Folder handle</strong>
+                <p className="muted">{status.directoryName || "No folder selected yet"}</p>
               </article>
               <article className="list-card">
                 <strong>Dominant requirement levels</strong>

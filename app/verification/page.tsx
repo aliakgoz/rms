@@ -1,9 +1,11 @@
+"use client";
+
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData } from "@/lib/rms/provider";
 
 export default function VerificationPage() {
-  const { db } = getDashboardData();
+  const { db } = useRmsData();
   const verificationTables = db.schemaTables.filter(
     (table) => table.table_name.includes("verification") || table.table_name.includes("validation")
   );

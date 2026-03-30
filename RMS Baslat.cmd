@@ -4,6 +4,9 @@ cd /d "%~dp0"
 if not exist node_modules (
   call npm install
 )
-start "" http://127.0.0.1:3210
-call npm run dev
+if not defined PORT set PORT=3210
+if not defined RMS_BACKEND_MODE set RMS_BACKEND_MODE=shared-file
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-rms.ps1"
+set "exitcode=%ERRORLEVEL%"
 endlocal
+exit /b %exitcode%

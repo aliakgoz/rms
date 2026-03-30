@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRmsData } from "@/lib/rms/provider";
 import type { EntityGroups, GenericTableRecord, Relationship, SchemaField, SchemaTable } from "@/lib/rms/store";
 
 type Props = {
@@ -61,7 +61,7 @@ function stringifyRecordValue(value: unknown) {
 }
 
 export function SchemaWorkbench({ entityGroups, schemaTables, relationships, recordsByTable }: Props) {
-  const router = useRouter();
+  const { connected, createGenericRecord } = useRmsData();
   const groupEntries = Object.entries(entityGroups);
   const [selectedGroup, setSelectedGroup] = useState(groupEntries[0]?.[0] || "");
   const [selectedTable, setSelectedTable] = useState(groupEntries[0]?.[1]?.[0] || "requirements");
@@ -84,7 +84,7 @@ export function SchemaWorkbench({ entityGroups, schemaTables, relationships, rec
 
   async function submit(formData: FormData) {
     if (!currentTable) {
-      return;
+      return false;
     }
 
     setIsSaving(true);
@@ -92,20 +92,12 @@ export function SchemaWorkbench({ entityGroups, schemaTables, relationships, rec
 
     try {
       const payload = Object.fromEntries(formData.entries());
-      const response = await fetch(`/api/records/${currentTable.table_name}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error("Kayit olusturulamadi.");
-      }
-
+      await createGenericRecord(currentTable.table_name, payload);
       setMessage(`${prettify(currentTable.table_name)} kaydi olusturuldu.`);
-      router.refresh();
+      return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Kayit sirasinda hata olustu.");
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -198,11 +190,21 @@ export function SchemaWorkbench({ entityGroups, schemaTables, relationships, rec
                 <h2>User-friendly record entry</h2>
                 <p>Alan aciklamalari, ornekler ve bagli kayit secimleri ile form doldurabilirsiniz.</p>
               </div>
+              {!connected ? (
+                <div className="empty-state" style={{ marginBottom: 16 }}>
+                  Once DivvySync klasorunu baglayin. Bu ekran secili yerel rms-data.json dosyasina yazar.
+                </div>
+              ) : null}
               <form
                 key={currentTable.table_name}
                 className="form-grid"
-                action={async (formData) => {
-                  await submit(formData);
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  const form = event.currentTarget;
+                  const saved = await submit(new FormData(form));
+                  if (saved) {
+                    form.reset();
+                  }
                 }}
               >
                 {editableFields.map((field) => {
@@ -243,7 +245,7 @@ export function SchemaWorkbench({ entityGroups, schemaTables, relationships, rec
                 })}
 
                 <div className="full form-actions">
-                  <button className="primary" type="submit" disabled={isSaving}>
+                  <button className="primary" type="submit" disabled={isSaving || !connected}>
                     {isSaving ? "Kaydediliyor..." : `${prettify(currentTable.table_name)} kaydi olustur`}
                   </button>
                   {message ? <span className="form-message">{message}</span> : null}

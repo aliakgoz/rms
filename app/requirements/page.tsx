@@ -1,18 +1,20 @@
+"use client";
+
 import { RequirementsBrowser } from "@/components/requirements/requirements-browser";
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
 import { RequirementForm } from "@/components/requirements/requirement-form";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData } from "@/lib/rms/provider";
 
 export default function RequirementsPage() {
-  const { db } = getDashboardData();
+  const { db, connected } = useRmsData();
 
   return (
     <>
       <PageHero
         eyebrow="Core records"
         title="Requirements register"
-        description="Requirements are managed as structured records rather than loose text. This page restores the create, browse and inspect workflow."
+        description="Requirements are managed as structured records rather than loose text. New records are written directly to the locally bound rms-data.json file."
         right={
           <>
             <div className="hero-chip">
@@ -22,6 +24,10 @@ export default function RequirementsPage() {
             <div className="hero-chip">
               <strong>{db.requirementLevels.length} selectable levels</strong>
               <div className="muted">Directly sourced from the seed catalogue.</div>
+            </div>
+            <div className="hero-chip">
+              <strong>{connected ? "Write-ready" : "Folder not connected"}</strong>
+              <div className="muted">Bind the DivvySync folder before saving.</div>
             </div>
           </>
         }

@@ -1,9 +1,11 @@
+"use client";
+
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData } from "@/lib/rms/provider";
 
 export default function TraceabilityPage() {
-  const { db } = getDashboardData();
+  const { db } = useRmsData();
   const requirementRels = db.relationships.filter((item) => item.from_table.includes("requirement"));
   const uniqueTargets = Array.from(new Set(requirementRels.map((item) => item.to_table)));
   const directCoverage = Math.round((uniqueTargets.length / Math.max(db.schemaTables.length, 1)) * 100);

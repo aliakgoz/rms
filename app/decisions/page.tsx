@@ -1,9 +1,11 @@
+"use client";
+
 import { KpiStrip } from "@/components/rms/kpi-strip";
 import { PageHero } from "@/components/rms/page-hero";
-import { getDashboardData } from "@/lib/rms/store";
+import { useRmsData } from "@/lib/rms/provider";
 
 export default function DecisionsPage() {
-  const { db } = getDashboardData();
+  const { db } = useRmsData();
   const decisionTables = db.schemaTables.filter(
     (table) => table.table_name.includes("decision") || table.table_name.includes("conflict")
   );
