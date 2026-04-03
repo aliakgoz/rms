@@ -18,6 +18,7 @@ import {
 
 const quickLinks = [
   { href: "./dashboard.html", label: "Dashboard" },
+  { href: "./tasks.html", label: "Tasks" },
   { href: "./requirements.html", label: "Requirements" },
   { href: "./workbench.html", label: "Workbench" },
   { href: "./traceability.html", label: "Traceability" }

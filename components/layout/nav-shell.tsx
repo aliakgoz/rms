@@ -8,9 +8,16 @@ import {
   formatRmsTimestamp,
   useRmsData
 } from "@/lib/rms/provider";
+import {
+  buildTaskAlerts,
+  describeTaskSyncState,
+  formatTaskTimestamp,
+  useTaskData
+} from "@/lib/tasks/provider";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", note: "overview" },
+  { href: "/tasks", label: "Tasks", note: "work tracking" },
   { href: "/requirements", label: "Requirements", note: "core records" },
   { href: "/workbench", label: "Workbench", note: "data entry" },
   { href: "/traceability", label: "Traceability", note: "network" },
@@ -42,8 +49,11 @@ function toStaticHref(route: string) {
 export function NavShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const activeRoute = normalizeRoute(pathname);
-  const { connected, status, errorMessage, connectFolder, reconnectFolder, refreshFromDisk } = useRmsData();
+  const rms = useRmsData();
+  const tasks = useTaskData();
   const [isRunningAction, setIsRunningAction] = useState(false);
+  const isTaskRoute = activeRoute === "/tasks";
+  const workspace = isTaskRoute ? tasks : rms;
 
   async function run(action: () => Promise<void>) {
     setIsRunningAction(true);
@@ -56,10 +66,18 @@ export function NavShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const alerts = buildSyncAlerts(status, errorMessage);
-  const connectionLabel = connected ? "Bagli" : "Bagli degil";
-  const folderLabel = status.directoryName || "Secilmedi";
-  const lastSeenLabel = formatRmsTimestamp(status.lastObservedFileModifiedAt || status.lastLoadedAt);
+  const alerts = isTaskRoute
+    ? buildTaskAlerts(tasks.status, tasks.errorMessage)
+    : buildSyncAlerts(rms.status, rms.errorMessage);
+  const connectionLabel = workspace.connected ? "Bagli" : "Bagli degil";
+  const folderLabel = workspace.status.directoryName || "Secilmedi";
+  const lastSeenLabel = isTaskRoute
+    ? formatTaskTimestamp(tasks.status.lastObservedFileModifiedAt || tasks.status.lastLoadedAt)
+    : formatRmsTimestamp(rms.status.lastObservedFileModifiedAt || rms.status.lastLoadedAt);
+  const storeTitle = isTaskRoute ? "Task Tracker Store" : "Local DivvySync Store";
+  const connectLabel = workspace.connected ? "Klasoru degistir" : "Klasoru Bagla";
+  const refreshLabel = workspace.connected ? "Yenile" : "Yeniden bagla";
+  const syncLabel = isTaskRoute ? describeTaskSyncState(tasks.status) : describeSyncState(rms.status);
 
   return (
     <div className="shell">
@@ -86,33 +104,33 @@ export function NavShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="side-card">
-          <p className="eyebrow">Local DivvySync Store</p>
+          <p className="eyebrow">{storeTitle}</p>
           <strong>{connectionLabel}</strong>
           <p className="muted">
-            {connected
-              ? `${folderLabel}/${status.fileName}`
+            {workspace.connected
+              ? `${folderLabel}/${workspace.status.fileName}`
               : "Ilk kullanimda DivvySync klasorunu baglayin."}
           </p>
           <div className="meta">
-            <span className="tag">{describeSyncState(status)}</span>
+            <span className="tag">{syncLabel}</span>
             <span className="tag slate">{lastSeenLabel}</span>
           </div>
           <div className="side-actions">
             <button
               className="primary compact-button"
               type="button"
-              onClick={() => void run(connectFolder)}
+              onClick={() => void run(workspace.connectFolder)}
               disabled={isRunningAction}
             >
-              {connected ? "Klasoru degistir" : "Klasoru Bagla"}
+              {connectLabel}
             </button>
             <button
               className="chip-button compact-button"
               type="button"
-              onClick={() => void run(connected ? refreshFromDisk : reconnectFolder)}
+              onClick={() => void run(workspace.connected ? workspace.refreshFromDisk : workspace.reconnectFolder)}
               disabled={isRunningAction}
             >
-              {connected ? "Yenile" : "Yeniden bagla"}
+              {refreshLabel}
             </button>
           </div>
           {alerts[0] ? <p className="connection-note">{alerts[0]}</p> : null}

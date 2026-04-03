@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
-    "build": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Remove-Item -Recurse -Force .next,out -ErrorAction SilentlyContinue; exit 0\" && next build",
+    "build": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Remove-Item -Recurse -Force .next,out -ErrorAction SilentlyContinue; exit 0\" && next build --webpack",
     "start": "next start --hostname 127.0.0.1",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy",

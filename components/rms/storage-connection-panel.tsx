@@ -11,6 +11,10 @@ export type StorageConnectionPanelProps = {
   providerLabel?: string;
   modeLabel?: string;
   lastBoundAtLabel?: string;
+  description?: string;
+  folderWaitingNote?: string;
+  fileWaitingNote?: string;
+  boundAtNote?: string;
   note?: string;
   onConnectFolder?: () => void | Promise<void>;
   onReconnect?: () => void | Promise<void>;
@@ -62,6 +66,10 @@ export function StorageConnectionPanel({
   providerLabel = "DivvySync",
   modeLabel = "Local file mode",
   lastBoundAtLabel,
+  description = "Yerel DivvySync klasorune baglanip dosya tabanli calisma durumunu yonetin.",
+  folderWaitingNote = "Klasor yolu bekleniyor.",
+  fileWaitingNote,
+  boundAtNote = "Baglanti bilgisi ana entegratorden gelecek.",
   note,
   onConnectFolder,
   onReconnect,
@@ -75,7 +83,7 @@ export function StorageConnectionPanel({
     <section className="panel">
       <div className="page-head">
         <h2>Storage connection</h2>
-        <p>Yerel DivvySync klasorune baglanip dosya tabanli calisma durumunu yonetin.</p>
+        <p>{description}</p>
       </div>
 
       <div className="stack">
@@ -94,21 +102,21 @@ export function StorageConnectionPanel({
             <strong>Folder</strong>
             <div>
               <div>{folderName || "Not connected"}</div>
-              <div className="muted">{folderPath || "Klasor yolu bekleniyor."}</div>
+              <div className="muted">{folderPath || folderWaitingNote}</div>
             </div>
           </div>
           <div className="matrix-row">
             <strong>File</strong>
             <div>
               <div>{fileName}</div>
-              <div className="muted">{filePath || "rms-data.json henuz baglanmadi."}</div>
+              <div className="muted">{filePath || fileWaitingNote || `${fileName} henuz baglanmadi.`}</div>
             </div>
           </div>
           <div className="matrix-row">
             <strong>Bound at</strong>
             <div>
               <div>{lastBoundAtLabel || "Henuz baglanmadi."}</div>
-              <div className="muted">Baglanti bilgisi ana entegratorden gelecek.</div>
+              <div className="muted">{boundAtNote}</div>
             </div>
           </div>
         </div>

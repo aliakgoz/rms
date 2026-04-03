@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { NavShell } from "@/components/layout/nav-shell";
 import { RmsProvider } from "@/lib/rms/provider";
+import { TaskProvider } from "@/lib/tasks/provider";
 
 export const metadata: Metadata = {
   title: "RMS Web",
@@ -13,7 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr">
       <body>
         <RmsProvider>
-          <NavShell>{children}</NavShell>
+          <TaskProvider>
+            <NavShell>{children}</NavShell>
+          </TaskProvider>
         </RmsProvider>
       </body>
     </html>
