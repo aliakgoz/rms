@@ -20,11 +20,9 @@ type Props = {
   onOwnerFilterChange: (value: string) => void;
   sortBy: TaskSortOption;
   onSortByChange: (value: TaskSortOption) => void;
-  onlyOpen: boolean;
-  onOnlyOpenChange: (value: boolean) => void;
-  onlyOverdue: boolean;
-  onOnlyOverdueChange: (value: boolean) => void;
   owners: string[];
+  resultCount: number;
+  onReset: () => void;
 };
 
 const SORT_LABELS: Record<TaskSortOption, string> = {
@@ -46,17 +44,22 @@ export function TaskFilters({
   onOwnerFilterChange,
   sortBy,
   onSortByChange,
-  onlyOpen,
-  onOnlyOpenChange,
-  onlyOverdue,
-  onOnlyOverdueChange,
-  owners
+  owners,
+  resultCount,
+  onReset
 }: Props) {
+  const hasActiveFilters =
+    query.trim().length > 0 ||
+    statusFilter !== "all" ||
+    priorityFilter !== "all" ||
+    ownerFilter !== "all" ||
+    sortBy !== "updated_desc";
+
   return (
     <section className="panel">
       <div className="page-head">
-        <h2>Filters</h2>
-        <p>Find active work fast without forcing a rigid workflow.</p>
+        <h2>Task Filters</h2>
+        <p>Search the current list and refine it without leaving the board.</p>
       </div>
 
       <div className="stack">
@@ -118,21 +121,13 @@ export function TaskFilters({
           </label>
         </div>
 
-        <div className="pill-row">
-          <button
-            className={`chip-button${onlyOpen ? " active" : ""}`}
-            type="button"
-            onClick={() => onOnlyOpenChange(!onlyOpen)}
-          >
-            open only
-          </button>
-          <button
-            className={`chip-button${onlyOverdue ? " active" : ""}`}
-            type="button"
-            onClick={() => onOnlyOverdueChange(!onlyOverdue)}
-          >
-            overdue only
-          </button>
+        <div className="task-filter-foot">
+          <span className="muted">{resultCount} task shown</span>
+          {hasActiveFilters ? (
+            <button className="chip-button" type="button" onClick={onReset}>
+              Clear filters
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

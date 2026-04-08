@@ -4,10 +4,14 @@ import { useState } from "react";
 import { formatTaskPriorityLabel, TASK_PRIORITY_OPTIONS } from "@/lib/tasks/store";
 import { useTaskData } from "@/lib/tasks/provider";
 
-export function TaskQuickAdd() {
-  const { connected, createTaskRecord } = useTaskData();
+export function TaskQuickAdd({ onCreated }: { onCreated?: () => void }) {
+  const { connected, db, createTaskRecord } = useTaskData();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [isAddingGroup, setIsAddingGroup] = useState(false);
+  const [newGroup, setNewGroup] = useState("");
+
+  const groups = [...db.groups].sort((left, right) => left.localeCompare(right, "tr"));
 
   async function onSubmit(formData: FormData) {
     setIsSaving(true);
@@ -15,8 +19,15 @@ export function TaskQuickAdd() {
 
     try {
       const payload = Object.fromEntries(formData.entries()) as Record<string, string>;
+      const groupName = (isAddingGroup ? newGroup : payload.group || "").trim();
+
+      if (isAddingGroup && !groupName) {
+        throw new Error("Yeni grup adi gerekli.");
+      }
+
       const task = await createTaskRecord({
         title: payload.title,
+        group: groupName,
         details: payload.details,
         owner: payload.owner,
         dueDate: payload.dueDate,
@@ -26,6 +37,9 @@ export function TaskQuickAdd() {
         initialComment: payload.initialComment
       });
       setMessage(`${task.title} added.`);
+      setIsAddingGroup(false);
+      setNewGroup("");
+      onCreated?.();
       return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Task could not be created.");
@@ -63,6 +77,36 @@ export function TaskQuickAdd() {
           <span>Owner</span>
           <small>Free-text owner keeps entry friction low.</small>
           <input name="owner" placeholder="Ali" />
+        </label>
+
+        <label className="form-field">
+          <div className="task-inline-label">
+            <span>Group</span>
+            <button
+              className="chip-button task-inline-button"
+              type="button"
+              onClick={() => setIsAddingGroup((current) => !current)}
+              disabled={!connected}
+            >
+              +
+            </button>
+          </div>
+          <small>Select an existing group or add a new one.</small>
+          {isAddingGroup ? (
+            <input
+              value={newGroup}
+              onChange={(event) => setNewGroup(event.target.value)}
+              placeholder="Yeni grup"
+            />
+          ) : (
+            <select name="group" defaultValue={groups.includes("Diğer") ? "Diğer" : groups[0] || ""}>
+              {groups.map((group) => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          )}
         </label>
 
         <label className="form-field">

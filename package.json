@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Remove-Item -Recurse -Force .next,out -ErrorAction SilentlyContinue; exit 0\" && next build --webpack",
+    "build:tasks-single": "npm run build && node scripts/build-single-task-release.mjs",
     "start": "next start --hostname 127.0.0.1",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy",

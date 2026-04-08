@@ -1,4 +1,15 @@
 export const TASKS_FILE_NAME = "task-tracker-data.json";
+export const DEFAULT_TASK_GROUPS = [
+  "YYBT",
+  "RAİT",
+  "Stratejik Yönetim ve Planlama",
+  "URAYP",
+  "İhale - RAİT",
+  "İhale - YYBT",
+  "Yönetim Sistemi",
+  "HYK",
+  "Diğer"
+] as const;
 
 export const TASK_STATUSES = [
   "open",
@@ -24,10 +35,12 @@ export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export type TaskSortOption = (typeof TASK_SORT_OPTIONS)[number];
 export type TaskCommentKind = "comment" | "update" | "status-change";
+export type TaskListCategory = "pending" | "overdue" | "due_soon" | "completed" | "other";
 
 export type TaskRecord = {
   id: string;
   title: string;
+  group: string;
   description: string;
   details: string;
   status: TaskStatus;
@@ -60,6 +73,7 @@ export type TaskDatabase = {
   version: number;
   createdAt: string;
   updatedAt: string;
+  groups: string[];
   tasks: TaskRecord[];
   comments: TaskComment[];
 };
@@ -79,6 +93,7 @@ export type TaskSummary = {
 
 export type CreateTaskInput = {
   title: string;
+  group?: string;
   description?: string;
   details?: string;
   status?: TaskStatus;
@@ -94,6 +109,7 @@ export type CreateTaskInput = {
 
 export type UpdateTaskInput = Partial<{
   title: string;
+  group: string;
   description: string;
   details: string;
   status: TaskStatus;
@@ -183,6 +199,27 @@ function asPriority(input: unknown) {
   return TASK_PRIORITIES.includes(input as TaskPriority) ? (input as TaskPriority) : "normal";
 }
 
+function normalizeGroupName(input: unknown) {
+  return trimString(input) || "Diğer";
+}
+
+function uniqueStrings(values: Array<unknown>) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const normalized = trimString(value);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
 function startOfToday(reference = new Date()) {
   const value = new Date(reference);
   value.setHours(0, 0, 0, 0);
@@ -193,7 +230,7 @@ function taskLastActivity(task: TaskRecord) {
   return task.lastCommentAt || task.updatedAt || task.createdAt;
 }
 
-function normalizeTask(input: Partial<TaskRecord>, index = 0): TaskRecord {
+function normalizeTask(input: Partial<TaskRecord> & { groupName?: string }, index = 0): TaskRecord {
   const createdAt = trimString(input.createdAt) || nowIso();
   const updatedAt = trimString(input.updatedAt) || createdAt;
   const status = asStatus(input.status);
@@ -201,10 +238,12 @@ function normalizeTask(input: Partial<TaskRecord>, index = 0): TaskRecord {
   const assignee = trimString(input.assignee) || trimString(input.owner);
   const dueAt = normalizeDateInput(input.dueAt) || normalizeDateInput(input.dueDate);
   const completedAt = status === "done" ? trimString(input.completedAt) || updatedAt : undefined;
+  const group = normalizeGroupName(input.group ?? input.groupName);
 
   return {
     id: trimString(input.id) || `TASK-${String(index + 1).padStart(4, "0")}-${createUuid().slice(-6)}`,
     title: trimString(input.title) || "Untitled task",
+    group,
     description,
     details: description,
     status,
@@ -266,6 +305,10 @@ function syncTaskCommentMeta(tasks: TaskRecord[], comments: TaskComment[]) {
   });
 }
 
+function syncTaskGroups(groups: unknown, tasks: TaskRecord[]) {
+  return uniqueStrings([...DEFAULT_TASK_GROUPS, ...(Array.isArray(groups) ? groups : []), ...tasks.map((task) => task.group)]);
+}
+
 function isClosed(status: TaskStatus) {
   return status === "done";
 }
@@ -279,9 +322,10 @@ function formatEnumLabel(value: string) {
 export function createInitialTaskDatabase(): TaskDatabase {
   const timestamp = nowIso();
   return {
-    version: 1,
+    version: 2,
     createdAt: timestamp,
     updatedAt: timestamp,
+    groups: [...DEFAULT_TASK_GROUPS],
     tasks: [],
     comments: []
   };
@@ -302,6 +346,7 @@ export function normalizeTaskDatabase(input: Partial<TaskDatabase> | null | unde
   return {
     ...base,
     ...current,
+    groups: syncTaskGroups(current.groups, tasks),
     tasks: syncTaskCommentMeta(tasks, comments),
     comments
   };
@@ -348,6 +393,26 @@ export function isTaskDueSoon(task: TaskRecord, reference = new Date(), days = 3
   const due = new Date(`${task.dueAt}T23:59:59`).getTime();
   const now = reference.getTime();
   return due >= now && due <= now + days * 24 * 60 * 60 * 1000;
+}
+
+export function getTaskListCategory(task: TaskRecord, reference = new Date()): TaskListCategory {
+  if (task.status === "done") {
+    return "completed";
+  }
+
+  if (isTaskOverdue(task, reference)) {
+    return "overdue";
+  }
+
+  if (isTaskDueSoon(task, reference)) {
+    return "due_soon";
+  }
+
+  if (isTaskOpen(task)) {
+    return "pending";
+  }
+
+  return "other";
 }
 
 export function getTaskComments(dbInput: TaskDatabase, taskId: string) {
@@ -449,6 +514,7 @@ export function createTask(dbInput: TaskDatabase, input: CreateTaskInput) {
   const task = normalizeTask(
     {
       title: input.title,
+      group: input.group,
       description: input.description ?? input.details,
       status: input.status || "open",
       priority: input.priority || "normal",
@@ -463,6 +529,7 @@ export function createTask(dbInput: TaskDatabase, input: CreateTaskInput) {
   );
 
   db.tasks.unshift(task);
+  db.groups = syncTaskGroups(db.groups, db.tasks);
   db.updatedAt = now;
 
   const initialComment = trimString(input.initialComment);
@@ -477,6 +544,7 @@ export function createTask(dbInput: TaskDatabase, input: CreateTaskInput) {
   }
 
   db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
+  db.groups = syncTaskGroups(db.groups, db.tasks);
   return { db, task };
 }
 
@@ -495,6 +563,7 @@ export function updateTask(dbInput: TaskDatabase, taskId: string, input: UpdateT
     {
       ...current,
       title: input.title ?? current.title,
+      group: input.group ?? current.group,
       description: input.description ?? input.details ?? current.description,
       status: nextStatus,
       priority: input.priority ?? current.priority,
@@ -511,6 +580,7 @@ export function updateTask(dbInput: TaskDatabase, taskId: string, input: UpdateT
   );
 
   db.tasks[index] = nextTask;
+  db.groups = syncTaskGroups(db.groups, db.tasks);
   db.updatedAt = now;
 
   if (current.status !== nextTask.status) {
@@ -539,6 +609,7 @@ export function updateTask(dbInput: TaskDatabase, taskId: string, input: UpdateT
   }
 
   db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
+  db.groups = syncTaskGroups(db.groups, db.tasks);
   return { db, task: db.tasks[index], comment: note ? db.comments[0] : undefined };
 }
 

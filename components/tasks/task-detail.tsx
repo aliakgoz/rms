@@ -20,6 +20,7 @@ type Props = {
 
 type TaskFormState = {
   title: string;
+  group: string;
   details: string;
   status: string;
   priority: string;
@@ -35,6 +36,7 @@ type TaskFormState = {
 function createFormState(task?: TaskRecord): TaskFormState {
   return {
     title: task?.title || "",
+    group: task?.group || "Diğer",
     details: task?.details || "",
     status: task?.status || "open",
     priority: task?.priority || "normal",
@@ -49,11 +51,12 @@ function createFormState(task?: TaskRecord): TaskFormState {
 }
 
 export function TaskDetail({ task, comments }: Props) {
-  const { connected, updateTaskRecord, addTaskCommentRecord } = useTaskData();
+  const { connected, db, updateTaskRecord, addTaskCommentRecord } = useTaskData();
   const [form, setForm] = useState<TaskFormState>(() => createFormState(task));
   const [isSaving, setIsSaving] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
   const [message, setMessage] = useState("");
+  const groups = [...db.groups].sort((left, right) => left.localeCompare(right, "tr"));
 
   useEffect(() => {
     setForm(createFormState(task));
@@ -73,6 +76,7 @@ export function TaskDetail({ task, comments }: Props) {
     try {
       const updated = await updateTaskRecord(currentTask.id, {
         title: form.title,
+        group: form.group,
         details: form.details,
         status: form.status as TaskRecord["status"],
         priority: form.priority as TaskRecord["priority"],
@@ -86,6 +90,7 @@ export function TaskDetail({ task, comments }: Props) {
       setForm((current) => ({
         ...current,
         title: updated.title,
+        group: updated.group,
         details: updated.details,
         status: updated.status,
         priority: updated.priority,
@@ -137,6 +142,7 @@ export function TaskDetail({ task, comments }: Props) {
         </div>
 
         <div className="task-detail-meta">
+          <span className="tag slate">{currentTask.group}</span>
           <span className="tag">{formatTaskStatusLabel(currentTask.status)}</span>
           <span className="tag slate">{formatTaskPriorityLabel(currentTask.priority)}</span>
           <span className="tag slate">created {formatTaskTimestamp(currentTask.createdAt)}</span>
@@ -151,6 +157,21 @@ export function TaskDetail({ task, comments }: Props) {
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
               disabled={!connected}
             />
+          </label>
+
+          <label className="form-field">
+            <span>Group</span>
+            <select
+              value={form.group}
+              onChange={(event) => setForm((current) => ({ ...current, group: event.target.value }))}
+              disabled={!connected}
+            >
+              {groups.map((group) => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="full form-field">
