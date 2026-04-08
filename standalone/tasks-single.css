@@ -268,6 +268,12 @@ strong {
   border: 1px solid var(--line);
 }
 
+.danger-button {
+  color: var(--accent-3);
+  border-color: rgba(194, 65, 12, 0.16);
+  background: rgba(194, 65, 12, 0.08);
+}
+
 .chip-button:hover:not(:disabled),
 .ghost-button:hover:not(:disabled),
 .primary-button:hover:not(:disabled),
@@ -485,6 +491,40 @@ textarea {
   font-weight: 700;
 }
 
+.inline-field {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+  flex: 0 0 220px;
+}
+
+.inline-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.inline-field input {
+  min-height: 42px;
+}
+
+.inline-picker-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-picker-main select {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-picker-extra {
+  margin-top: 8px;
+}
+
 .mini-button {
   min-width: 34px;
   min-height: 34px;
@@ -559,6 +599,11 @@ textarea {
   .table-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .inline-field {
+    min-width: 0;
+    flex-basis: auto;
   }
 
   .chip-button,

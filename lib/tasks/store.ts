@@ -74,6 +74,7 @@ export type TaskDatabase = {
   createdAt: string;
   updatedAt: string;
   groups: string[];
+  users: string[];
   tasks: TaskRecord[];
   comments: TaskComment[];
 };
@@ -309,6 +310,14 @@ function syncTaskGroups(groups: unknown, tasks: TaskRecord[]) {
   return uniqueStrings([...DEFAULT_TASK_GROUPS, ...(Array.isArray(groups) ? groups : []), ...tasks.map((task) => task.group)]);
 }
 
+function syncTaskUsers(users: unknown, tasks: TaskRecord[], comments: TaskComment[]) {
+  return uniqueStrings([
+    ...(Array.isArray(users) ? users : []),
+    ...tasks.flatMap((task) => [task.owner, task.assignee, task.createdBy]),
+    ...comments.map((comment) => comment.author)
+  ]);
+}
+
 function isClosed(status: TaskStatus) {
   return status === "done";
 }
@@ -326,6 +335,7 @@ export function createInitialTaskDatabase(): TaskDatabase {
     createdAt: timestamp,
     updatedAt: timestamp,
     groups: [...DEFAULT_TASK_GROUPS],
+    users: [],
     tasks: [],
     comments: []
   };
@@ -347,6 +357,7 @@ export function normalizeTaskDatabase(input: Partial<TaskDatabase> | null | unde
     ...base,
     ...current,
     groups: syncTaskGroups(current.groups, tasks),
+    users: syncTaskUsers(current.users, tasks, comments),
     tasks: syncTaskCommentMeta(tasks, comments),
     comments
   };
@@ -530,6 +541,7 @@ export function createTask(dbInput: TaskDatabase, input: CreateTaskInput) {
 
   db.tasks.unshift(task);
   db.groups = syncTaskGroups(db.groups, db.tasks);
+  db.users = syncTaskUsers(db.users, db.tasks, db.comments);
   db.updatedAt = now;
 
   const initialComment = trimString(input.initialComment);
@@ -545,6 +557,7 @@ export function createTask(dbInput: TaskDatabase, input: CreateTaskInput) {
 
   db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
   db.groups = syncTaskGroups(db.groups, db.tasks);
+  db.users = syncTaskUsers(db.users, db.tasks, db.comments);
   return { db, task };
 }
 
@@ -581,6 +594,7 @@ export function updateTask(dbInput: TaskDatabase, taskId: string, input: UpdateT
 
   db.tasks[index] = nextTask;
   db.groups = syncTaskGroups(db.groups, db.tasks);
+  db.users = syncTaskUsers(db.users, db.tasks, db.comments);
   db.updatedAt = now;
 
   if (current.status !== nextTask.status) {
@@ -610,6 +624,7 @@ export function updateTask(dbInput: TaskDatabase, taskId: string, input: UpdateT
 
   db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
   db.groups = syncTaskGroups(db.groups, db.tasks);
+  db.users = syncTaskUsers(db.users, db.tasks, db.comments);
   return { db, task: db.tasks[index], comment: note ? db.comments[0] : undefined };
 }
 
@@ -635,10 +650,29 @@ export function addTaskComment(dbInput: TaskDatabase, taskId: string, input: { b
 
   db.comments.unshift(comment);
   db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
+  db.users = syncTaskUsers(db.users, db.tasks, db.comments);
   db.updatedAt = comment.createdAt;
   return { db, comment };
 }
 
 export function addComment(dbInput: TaskDatabase, input: AddTaskCommentInput) {
   return addTaskComment(dbInput, input.taskId, input);
+}
+
+export function deleteTask(dbInput: TaskDatabase, taskId: string) {
+  const db = normalizeTaskDatabase(dbInput);
+  const task = db.tasks.find((item) => item.id === taskId);
+
+  if (!task) {
+    throw new Error("Task not found.");
+  }
+
+  db.tasks = db.tasks.filter((item) => item.id !== taskId);
+  db.comments = db.comments.filter((comment) => comment.taskId !== taskId);
+  db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
+  db.groups = syncTaskGroups(db.groups, db.tasks);
+  db.users = syncTaskUsers(db.users, db.tasks, db.comments);
+  db.updatedAt = nowIso();
+
+  return { db, task };
 }

@@ -22,6 +22,7 @@
     { value: "created_desc", label: "Newest" },
     { value: "comments_desc", label: "Comments" }
   ];
+  const USER_STORAGE_KEY = "task-tracker-current-user";
   const DEFAULT_STATUS = {
     syncState: "idle",
     fileName: TASKS_FILE_NAME,
@@ -56,6 +57,8 @@
     status: { ...DEFAULT_STATUS },
     selectedTaskId: "",
     viewFilter: "all",
+    currentUser: loadCurrentUser(),
+    newUserDraft: "",
     query: "",
     groupFilter: "all",
     statusFilter: "all",
@@ -64,6 +67,7 @@
     sortBy: "updated_desc",
     showQuickAdd: false,
     addingGroup: false,
+    addingUser: false,
     notice: "",
     noticeTone: "info",
     actionBusy: false,
@@ -183,9 +187,31 @@
       createdAt: timestamp,
       updatedAt: timestamp,
       groups: [...DEFAULT_TASK_GROUPS],
+      users: [],
       tasks: [],
       comments: []
     };
+  }
+
+  function loadCurrentUser() {
+    try {
+      return trimString(window.localStorage.getItem(USER_STORAGE_KEY));
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function saveCurrentUser(value) {
+    try {
+      const normalized = trimString(value);
+      if (normalized) {
+        window.localStorage.setItem(USER_STORAGE_KEY, normalized);
+      } else {
+        window.localStorage.removeItem(USER_STORAGE_KEY);
+      }
+    } catch (_error) {
+      // Ignore local storage failures and keep the in-memory value.
+    }
   }
 
   function normalizeComment(input) {
@@ -266,6 +292,16 @@
     return uniqueStrings([].concat(DEFAULT_TASK_GROUPS, Array.isArray(groups) ? groups : [], tasks.map((task) => task.group)));
   }
 
+  function syncTaskUsers(users, tasks, comments) {
+    return uniqueStrings(
+      [].concat(
+        Array.isArray(users) ? users : [],
+        tasks.flatMap((task) => [task.owner, task.assignee, task.createdBy]),
+        comments.map((comment) => comment.author)
+      )
+    );
+  }
+
   function normalizeDatabase(input) {
     const base = createInitialDatabase();
     const source = input && typeof input === "object" ? input : {};
@@ -280,6 +316,7 @@
       ...base,
       ...source,
       groups: syncTaskGroups(source.groups, tasks),
+      users: syncTaskUsers(source.users, tasks, comments),
       tasks: syncTaskCommentMeta(tasks, comments),
       comments
     };
@@ -434,6 +471,7 @@
 
     db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
     db.groups = syncTaskGroups(db.groups, db.tasks);
+    db.users = syncTaskUsers(db.users, db.tasks, db.comments);
     return { db, task: db.tasks.find((item) => item.id === task.id) || task };
   }
 
@@ -497,6 +535,7 @@
 
     db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
     db.groups = syncTaskGroups(db.groups, db.tasks);
+    db.users = syncTaskUsers(db.users, db.tasks, db.comments);
     return { db, task: db.tasks[index] };
   }
 
@@ -523,8 +562,25 @@
       statusTo: ""
     });
     db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
+    db.users = syncTaskUsers(db.users, db.tasks, db.comments);
     db.updatedAt = nowIso();
     return { db };
+  }
+
+  function deleteTaskRecord(taskId) {
+    const db = normalizeDatabase(state.db);
+    const task = db.tasks.find((item) => item.id === taskId);
+    if (!task) {
+      throw new Error("Task not found.");
+    }
+
+    db.tasks = db.tasks.filter((item) => item.id !== taskId);
+    db.comments = db.comments.filter((comment) => comment.taskId !== taskId);
+    db.tasks = syncTaskCommentMeta(db.tasks, db.comments);
+    db.groups = syncTaskGroups(db.groups, db.tasks);
+    db.users = syncTaskUsers(db.users, db.tasks, db.comments);
+    db.updatedAt = nowIso();
+    return { db, task };
   }
 
   function getOwners() {
@@ -533,6 +589,12 @@
 
   function getGroups() {
     return [...state.db.groups].sort((left, right) => left.localeCompare(right, "tr"));
+  }
+
+  function getUsers() {
+    return uniqueStrings([...(Array.isArray(state.db.users) ? state.db.users : []), state.currentUser]).sort((left, right) =>
+      left.localeCompare(right, "tr")
+    );
   }
 
   function getFilteredTasks() {
@@ -922,6 +984,25 @@
     }
   }
 
+  async function addSharedUser(name) {
+    const normalized = trimString(name);
+    if (!normalized) {
+      throw new Error("New user name is required.");
+    }
+
+    const nextDb = normalizeDatabase({
+      ...state.db,
+      users: uniqueStrings([...(Array.isArray(state.db.users) ? state.db.users : []), normalized]),
+      updatedAt: nowIso()
+    });
+
+    await saveToDisk(nextDb);
+    state.currentUser = normalized;
+    state.newUserDraft = "";
+    state.addingUser = false;
+    saveCurrentUser(normalized);
+  }
+
   function ensureSelectedTask(filteredTasks) {
     if (!filteredTasks.length) {
       state.selectedTaskId = "";
@@ -1011,7 +1092,7 @@
       '<div class="panel-head"><div><h2>Quick Add</h2><p>Fast capture first. Only title is required; everything else is optional.</p></div></div>' +
       '<form id="quick-add-form" class="form-grid">' +
       '<label class="form-field full"><span class="field-label">Task title *</span><input name="title" required placeholder="Prepare review package for weekly meeting" /></label>' +
-      '<label class="form-field"><span class="field-label">Owner</span><input name="owner" placeholder="Ali" /></label>' +
+      '<label class="form-field"><span class="field-label">Owner</span><input name="owner" value="' + escapeHtml(state.currentUser) + '" /></label>' +
       '<label class="form-field"><div class="field-top"><span class="field-label">Group</span><button class="chip-button mini-button" type="button" data-action="toggle-add-group">+</button></div><span class="field-note">Select an existing group or add a new one.</span>' +
       groupField +
       "</label>" +
@@ -1019,7 +1100,7 @@
       '<label class="form-field"><span class="field-label">Priority</span><select name="priority">' +
       renderOptions(TASK_PRIORITIES, "normal", formatEnumLabel) +
       "</select></label>" +
-      '<label class="form-field"><span class="field-label">Created by</span><input name="createdBy" placeholder="Rayk team" /></label>' +
+      '<label class="form-field"><span class="field-label">Created by</span><input name="createdBy" value="' + escapeHtml(state.currentUser) + '" /></label>' +
       '<label class="form-field full"><span class="field-label">Tags</span><input name="tags" placeholder="licensing, review, waiting" /></label>' +
       '<label class="form-field full"><span class="field-label">Details</span><textarea name="details" rows="4" placeholder="Add enough context for the next person who opens this task."></textarea></label>' +
       '<label class="form-field full"><span class="field-label">First note</span><textarea name="initialComment" rows="3" placeholder="Waiting for supplier feedback."></textarea></label>' +
@@ -1066,15 +1147,21 @@
       '<label class="form-field"><span class="field-label">Due date</span><input name="dueDate" type="date" value="' + escapeHtml(task.dueDate || "") + '"' + (state.status.hasConnectedHandle ? "" : " disabled") + " /></label>" +
       '<label class="form-field full"><span class="field-label">Tags</span><input name="tags" value="' + escapeHtml((task.tags || []).join(", ")) + '"' + (state.status.hasConnectedHandle ? "" : " disabled") + ' placeholder="licensing, review" /></label>' +
       '<label class="form-field full"><span class="field-label">Details</span><textarea name="details" rows="5"' + (state.status.hasConnectedHandle ? "" : " disabled") + ">" + escapeHtml(task.details || "") + "</textarea></label>" +
-      '<label class="form-field"><span class="field-label">Update author</span><input name="author" placeholder="Ali"' + (state.status.hasConnectedHandle ? "" : " disabled") + " /></label>" +
+      '<label class="form-field"><span class="field-label">Update author</span><input name="author" value="' + escapeHtml(state.currentUser) + '"' + (state.status.hasConnectedHandle ? "" : " disabled") + " /></label>" +
       '<label class="form-field full"><span class="field-label">Update note</span><textarea name="note" rows="3" placeholder="Status changed after supplier call."' + (state.status.hasConnectedHandle ? "" : " disabled") + "></textarea></label>" +
       "</div>" +
-      '<div class="form-actions"><button class="primary-button" type="submit"' + (state.status.hasConnectedHandle ? "" : " disabled") + ">Save Changes</button></div>" +
+      '<div class="form-actions"><button class="primary-button" type="submit"' +
+      (state.status.hasConnectedHandle ? "" : " disabled") +
+      '>Save Changes</button><button class="ghost-button danger-button" type="button" data-action="delete-task" data-delete-task-id="' +
+      escapeHtml(task.id) +
+      '"' +
+      (state.status.hasConnectedHandle ? "" : " disabled") +
+      '>Delete Task</button></div>' +
       "</form>" +
       '<div class="section-divider"></div>' +
       '<div class="stack"><div><h3>Comments</h3><p class="muted">Shared notes and updates visible to every synced client.</p></div>' +
       '<form id="comment-form" class="form-grid" data-form-task-id="' + escapeHtml(task.id) + '">' +
-      '<label class="form-field"><span class="field-label">Comment author</span><input name="author" placeholder="Ali"' + (state.status.hasConnectedHandle ? "" : " disabled") + " /></label>" +
+      '<label class="form-field"><span class="field-label">Comment author</span><input name="author" value="' + escapeHtml(state.currentUser) + '"' + (state.status.hasConnectedHandle ? "" : " disabled") + " /></label>" +
       '<label class="form-field full"><span class="field-label">New comment</span><textarea name="body" rows="3" placeholder="Need procurement feedback before moving this forward."' + (state.status.hasConnectedHandle ? "" : " disabled") + "></textarea></label>" +
       '<div class="form-actions full"><button class="primary-button" type="submit"' + (state.status.hasConnectedHandle ? "" : " disabled") + ">Add Comment</button></div>" +
       "</form>" +
@@ -1132,6 +1219,7 @@
     const summary = summarizeDatabase();
     const groups = getGroups();
     const owners = getOwners();
+    const users = getUsers();
     const filteredTasks = getFilteredTasks();
     ensureSelectedTask(filteredTasks);
     const task = selectedTask(filteredTasks);
@@ -1177,6 +1265,25 @@
       '<div class="panel-head"><div><h2>All Tasks</h2><p>' +
       escapeHtml(filteredTasks.length) +
       ' item in the current view. Select any row to open details.</p></div><div class="table-actions">' +
+      '<label class="inline-field"><span>Current user</span>' +
+      '<div class="inline-picker-main">' +
+      '<select id="current-user-select">' +
+      '<option value=""' +
+      (state.currentUser ? "" : " selected") +
+      '>Select</option>' +
+      users
+        .map((user) => {
+          const selected = user === state.currentUser ? " selected" : "";
+          return '<option value="' + escapeHtml(user) + '"' + selected + ">" + escapeHtml(user) + "</option>";
+        })
+        .join("") +
+      "</select>" +
+      '<button class="chip-button mini-button" type="button" data-action="toggle-add-user">+</button>' +
+      "</div>" +
+      (state.addingUser
+        ? '<input id="new-user-input" class="inline-picker-extra" value="' + escapeHtml(state.newUserDraft) + '" placeholder="New user name" />'
+        : "") +
+      "</label>" +
       '<button class="primary-button" type="button" data-action="toggle-quick-add">' +
       (state.showQuickAdd ? "Hide quick add" : state.db.tasks.length ? "New task" : "Add first task") +
       "</button>" +
@@ -1259,6 +1366,29 @@
     bindEvents();
   }
 
+  function renderAndRestoreInput(selector, selectionStart, selectionEnd) {
+    render();
+
+    const element = app.querySelector(selector);
+    if (!element || typeof element.focus !== "function") {
+      return;
+    }
+
+    element.focus({ preventScroll: true });
+
+    if (typeof element.setSelectionRange !== "function") {
+      return;
+    }
+
+    try {
+      const start = typeof selectionStart === "number" ? selectionStart : element.value.length;
+      const end = typeof selectionEnd === "number" ? selectionEnd : start;
+      element.setSelectionRange(start, end);
+    } catch (_error) {
+      // Ignore caret restore failures on unsupported inputs.
+    }
+  }
+
   function bindEvents() {
     app.querySelectorAll("[data-view-filter]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -1277,8 +1407,48 @@
     const filterQuery = app.querySelector("#filter-query");
     if (filterQuery) {
       filterQuery.addEventListener("input", (event) => {
-        state.query = event.target.value;
+        const input = event.target;
+        state.query = input.value;
+        renderAndRestoreInput("#filter-query", input.selectionStart, input.selectionEnd);
+      });
+    }
+
+    const currentUserSelect = app.querySelector("#current-user-select");
+    if (currentUserSelect) {
+      currentUserSelect.addEventListener("change", (event) => {
+        state.currentUser = trimString(event.target.value);
+        saveCurrentUser(state.currentUser);
         render();
+      });
+    }
+
+    const newUserInput = app.querySelector("#new-user-input");
+    if (newUserInput) {
+      newUserInput.addEventListener("input", (event) => {
+        state.newUserDraft = event.target.value;
+      });
+
+      newUserInput.addEventListener("keydown", async (event) => {
+        if (event.key !== "Enter") {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (!state.status.hasConnectedHandle) {
+          setNotice("Bind the task folder first.", "error");
+          render();
+          return;
+        }
+
+        try {
+          await addSharedUser(state.newUserDraft);
+          setNotice("User added to the shared list.", "success");
+          render();
+        } catch (error) {
+          setNotice(error && error.message ? error.message : "User could not be added.", "error");
+          render();
+        }
       });
     }
 
@@ -1314,6 +1484,35 @@
           return;
         }
 
+        if (action === "toggle-add-user") {
+          if (!state.addingUser) {
+            state.addingUser = true;
+            state.newUserDraft = "";
+            render();
+            const input = app.querySelector("#new-user-input");
+            if (input) {
+              input.focus();
+            }
+            return;
+          }
+
+          if (!state.status.hasConnectedHandle) {
+            setNotice("Bind the task folder first.", "error");
+            render();
+            return;
+          }
+
+          try {
+            await addSharedUser(state.newUserDraft);
+            setNotice("User added to the shared list.", "success");
+            render();
+          } catch (error) {
+            setNotice(error && error.message ? error.message : "User could not be added.", "error");
+            render();
+          }
+          return;
+        }
+
         if (action === "clear-filters") {
           state.query = "";
           state.groupFilter = "all";
@@ -1323,6 +1522,39 @@
           state.sortBy = "updated_desc";
           state.viewFilter = "all";
           render();
+          return;
+        }
+
+        if (action === "delete-task") {
+          const taskId = button.getAttribute("data-delete-task-id");
+          if (!taskId) {
+            return;
+          }
+
+          if (!state.status.hasConnectedHandle) {
+            setNotice("Bind the task folder first.", "error");
+            render();
+            return;
+          }
+
+          const task = state.db.tasks.find((item) => item.id === taskId);
+          const confirmed = window.confirm(
+            'Delete "' + (task ? task.title : "this task") + '" and all related comments?'
+          );
+          if (!confirmed) {
+            return;
+          }
+
+          try {
+            const result = deleteTaskRecord(taskId);
+            await saveToDisk(result.db);
+            state.selectedTaskId = "";
+            setNotice(result.task.title + " deleted.", "success");
+            render();
+          } catch (error) {
+            setNotice(error && error.message ? error.message : "Task could not be deleted.", "error");
+            render();
+          }
           return;
         }
 
