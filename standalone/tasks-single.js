@@ -68,6 +68,7 @@
     showQuickAdd: false,
     addingGroup: false,
     addingUser: false,
+    deleteDialogTaskId: "",
     notice: "",
     noticeTone: "info",
     actionBusy: false,
@@ -178,6 +179,14 @@
       dateStyle: "medium",
       timeStyle: "short"
     }).format(new Date(value));
+  }
+
+  function truncateText(value, maxLength = 84) {
+    const text = trimString(value);
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return text.slice(0, Math.max(0, maxLength - 1)).trimEnd() + "…";
   }
 
   function createInitialDatabase() {
@@ -1032,6 +1041,35 @@
       .join("");
   }
 
+  function renderTaskCommentBubbles(taskId) {
+    const comments = getTaskComments(taskId).slice(0, 3);
+    if (!comments.length) {
+      return "";
+    }
+
+    return (
+      '<div class="task-comment-strip">' +
+      comments
+        .map((comment) => {
+          return (
+            '<div class="comment-bubble">' +
+            '<div class="comment-bubble-meta">' +
+            '<span>' +
+            escapeHtml(comment.author || "Anonymous") +
+            "</span>" +
+            '<span>' +
+            escapeHtml(formatTimestamp(comment.createdAt)) +
+            "</span></div>" +
+            '<div class="comment-bubble-body">' +
+            escapeHtml(truncateText(comment.body, 88)) +
+            "</div></div>"
+          );
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+
   function renderTaskRows(tasks) {
     if (!tasks.length) {
       return '<tr><td colspan="7"><div class="empty">No tasks match the current filters.</div></td></tr>';
@@ -1057,6 +1095,7 @@
           '<div class="task-meta-row">' +
           task.tags.map((tag) => '<span class="pill slate">' + escapeHtml(tag) + "</span>").join("") +
           "</div>" +
+          renderTaskCommentBubbles(task.id) +
           "</button>" +
           "</td>" +
           "<td>" + escapeHtml(task.owner || "Unassigned") + "</td>" +
@@ -1071,7 +1110,7 @@
       .join("");
   }
 
-  function renderQuickAdd(groups) {
+  function renderQuickAdd(groups, users) {
     if (!state.showQuickAdd) {
       return "";
     }
@@ -1087,12 +1126,27 @@
           .join("") +
         "</select>";
 
+    const ownerField =
+      '<select name="owner">' +
+      '<option value=""' +
+      (state.currentUser ? "" : " selected") +
+      '>Unassigned</option>' +
+      users
+        .map((user) => {
+          const selected = user === state.currentUser ? " selected" : "";
+          return '<option value="' + escapeHtml(user) + '"' + selected + ">" + escapeHtml(user) + "</option>";
+        })
+        .join("") +
+      "</select>";
+
     return (
       '<section class="panel">' +
       '<div class="panel-head"><div><h2>Quick Add</h2><p>Fast capture first. Only title is required; everything else is optional.</p></div></div>' +
       '<form id="quick-add-form" class="form-grid">' +
       '<label class="form-field full"><span class="field-label">Task title *</span><input name="title" required placeholder="Prepare review package for weekly meeting" /></label>' +
-      '<label class="form-field"><span class="field-label">Owner</span><input name="owner" value="' + escapeHtml(state.currentUser) + '" /></label>' +
+      '<label class="form-field"><span class="field-label">Owner</span>' +
+      ownerField +
+      "</label>" +
       '<label class="form-field"><div class="field-top"><span class="field-label">Group</span><button class="chip-button mini-button" type="button" data-action="toggle-add-group">+</button></div><span class="field-note">Select an existing group or add a new one.</span>' +
       groupField +
       "</label>" +
@@ -1124,6 +1178,8 @@
       '<span class="pill">' + escapeHtml(formatEnumLabel(task.status)) + "</span>" +
       '<span class="pill slate">' + escapeHtml(formatEnumLabel(task.priority)) + "</span>" +
       '<span class="pill slate">created ' + escapeHtml(formatTimestamp(task.createdAt)) + "</span>" +
+      '<span class="pill slate">created by ' + escapeHtml(task.createdBy || "Unknown") + "</span>" +
+      '<span class="pill slate">' + escapeHtml(String(comments.length)) + " comments</span>" +
       '<span class="pill slate">updated ' + escapeHtml(formatTimestamp(task.lastCommentAt || task.updatedAt)) + "</span>" +
       "</div>" +
       '<form id="detail-form" class="stack" data-form-task-id="' + escapeHtml(task.id) + '">' +
@@ -1148,7 +1204,7 @@
       '<label class="form-field full"><span class="field-label">Tags</span><input name="tags" value="' + escapeHtml((task.tags || []).join(", ")) + '"' + (state.status.hasConnectedHandle ? "" : " disabled") + ' placeholder="licensing, review" /></label>' +
       '<label class="form-field full"><span class="field-label">Details</span><textarea name="details" rows="5"' + (state.status.hasConnectedHandle ? "" : " disabled") + ">" + escapeHtml(task.details || "") + "</textarea></label>" +
       '<label class="form-field"><span class="field-label">Update author</span><input name="author" value="' + escapeHtml(state.currentUser) + '"' + (state.status.hasConnectedHandle ? "" : " disabled") + " /></label>" +
-      '<label class="form-field full"><span class="field-label">Update note</span><textarea name="note" rows="3" placeholder="Status changed after supplier call."' + (state.status.hasConnectedHandle ? "" : " disabled") + "></textarea></label>" +
+      '<label class="form-field full"><span class="field-label">Update note</span><textarea name="note" rows="3" placeholder="Explain the update here."' + (state.status.hasConnectedHandle ? "" : " disabled") + "></textarea></label>" +
       "</div>" +
       '<div class="form-actions"><button class="primary-button" type="submit"' +
       (state.status.hasConnectedHandle ? "" : " disabled") +
@@ -1162,7 +1218,7 @@
       '<div class="stack"><div><h3>Comments</h3><p class="muted">Shared notes and updates visible to every synced client.</p></div>' +
       '<form id="comment-form" class="form-grid" data-form-task-id="' + escapeHtml(task.id) + '">' +
       '<label class="form-field"><span class="field-label">Comment author</span><input name="author" value="' + escapeHtml(state.currentUser) + '"' + (state.status.hasConnectedHandle ? "" : " disabled") + " /></label>" +
-      '<label class="form-field full"><span class="field-label">New comment</span><textarea name="body" rows="3" placeholder="Need procurement feedback before moving this forward."' + (state.status.hasConnectedHandle ? "" : " disabled") + "></textarea></label>" +
+      '<label class="form-field full"><span class="field-label">New comment</span><textarea name="body" rows="3" placeholder="Write your comment here."' + (state.status.hasConnectedHandle ? "" : " disabled") + "></textarea></label>" +
       '<div class="form-actions full"><button class="primary-button" type="submit"' + (state.status.hasConnectedHandle ? "" : " disabled") + ">Add Comment</button></div>" +
       "</form>" +
       '<div class="comment-list">' +
@@ -1215,6 +1271,33 @@
     );
   }
 
+  function renderDeleteDialog() {
+    if (!state.deleteDialogTaskId) {
+      return "";
+    }
+
+    const task = state.db.tasks.find((item) => item.id === state.deleteDialogTaskId);
+    if (!task) {
+      state.deleteDialogTaskId = "";
+      return "";
+    }
+
+    return (
+      '<div class="modal-backdrop">' +
+      '<div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">' +
+      '<div class="modal-copy"><span class="eyebrow">Delete task</span>' +
+      '<h3 id="delete-dialog-title">Are you sure?</h3>' +
+      '<p>This will permanently delete <strong>' +
+      escapeHtml(task.title) +
+      '</strong> and all related comments.</p></div>' +
+      '<div class="form-actions">' +
+      '<button class="ghost-button" type="button" data-action="cancel-delete-task">Cancel</button>' +
+      '<button class="ghost-button danger-button" type="button" data-action="confirm-delete-task" data-delete-task-id="' +
+      escapeHtml(task.id) +
+      '">Delete Task</button></div></div></div>'
+    );
+  }
+
   function render() {
     const summary = summarizeDatabase();
     const groups = getGroups();
@@ -1260,7 +1343,7 @@
         })
         .join("") +
       "</section>" +
-      renderQuickAdd(groups) +
+      renderQuickAdd(groups, users) +
       '<section class="panel">' +
       '<div class="panel-head"><div><h2>All Tasks</h2><p>' +
       escapeHtml(filteredTasks.length) +
@@ -1361,6 +1444,7 @@
       "</tbody></table></div></section>" +
       renderDetails(task, comments, groups) +
       renderRecentComments(summary) +
+      renderDeleteDialog() +
       "</main>";
 
     bindEvents();
@@ -1537,11 +1621,20 @@
             return;
           }
 
-          const task = state.db.tasks.find((item) => item.id === taskId);
-          const confirmed = window.confirm(
-            'Delete "' + (task ? task.title : "this task") + '" and all related comments?'
-          );
-          if (!confirmed) {
+          state.deleteDialogTaskId = taskId;
+          render();
+          return;
+        }
+
+        if (action === "cancel-delete-task") {
+          state.deleteDialogTaskId = "";
+          render();
+          return;
+        }
+
+        if (action === "confirm-delete-task") {
+          const taskId = button.getAttribute("data-delete-task-id");
+          if (!taskId) {
             return;
           }
 
@@ -1549,9 +1642,11 @@
             const result = deleteTaskRecord(taskId);
             await saveToDisk(result.db);
             state.selectedTaskId = "";
+            state.deleteDialogTaskId = "";
             setNotice(result.task.title + " deleted.", "success");
             render();
           } catch (error) {
+            state.deleteDialogTaskId = "";
             setNotice(error && error.message ? error.message : "Task could not be deleted.", "error");
             render();
           }
