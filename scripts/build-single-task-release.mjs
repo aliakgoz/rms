@@ -1,68 +1,24 @@
-import { promises as fs, readFileSync } from "node:fs";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 
 const rootDir = process.cwd();
-const outDir = path.join(rootDir, "out");
+const sourcePath = path.join(rootDir, "standalone", "tasks-single.template.html");
+const cssPath = path.join(rootDir, "standalone", "tasks-single.css");
+const jsPath = path.join(rootDir, "standalone", "tasks-single.js");
 const releaseDir = path.join(rootDir, "release");
-const inputPath = path.join(outDir, "tasks.html");
-const outputPath = path.join(releaseDir, "tasks.html");
+const targetPath = path.join(releaseDir, "tasks.html");
 
-async function ensureFile(filePath) {
-  await fs.access(filePath);
-  return filePath;
-}
+await Promise.all([fs.access(sourcePath), fs.access(cssPath), fs.access(jsPath)]);
+const [template, css, js] = await Promise.all([
+  fs.readFile(sourcePath, "utf8"),
+  fs.readFile(cssPath, "utf8"),
+  fs.readFile(jsPath, "utf8")
+]);
 
-function resolveAssetPath(assetPath) {
-  const normalized = assetPath.replace(/^\.\//, "").replace(/\//g, path.sep);
-  return path.join(outDir, normalized);
-}
+const output = template
+  .replace("/*__TASKS_CSS__*/", css)
+  .replace("/*__TASKS_JS__*/", js);
 
-function escapeInlineScript(source) {
-  return source.replace(/<\/script/gi, "<\\/script");
-}
-
-function escapeInlineStyle(source) {
-  return source.replace(/<\/style/gi, "<\\/style");
-}
-
-async function inlineAssets() {
-  await ensureFile(inputPath);
-
-  const html = await fs.readFile(inputPath, "utf8");
-
-  let inlined = html.replace(
-    /<link\s+rel="stylesheet"\s+href="([^"]+)"([^>]*)\/>/gi,
-    (_match, href, rest) => {
-      const assetPath = resolveAssetPath(href);
-      const css = escapeInlineStyle(
-        readFileSync(assetPath, "utf8")
-      );
-
-      return `<style data-inline-href="${href}"${rest}>${css}</style>`;
-    }
-  );
-
-  inlined = inlined.replace(
-    /<link\s+rel="preload"\s+as="script"[^>]*href="[^"]+"[^>]*\/>/gi,
-    ""
-  );
-
-  inlined = inlined.replace(
-    /<script([^>]*?)\ssrc="([^"]+)"([^>]*)><\/script>/gi,
-    (_match, beforeSrc, src, afterSrc) => {
-      const assetPath = resolveAssetPath(src);
-      const script = escapeInlineScript(
-        readFileSync(assetPath, "utf8")
-      );
-      const attributes = `${beforeSrc}${afterSrc}`.replace(/\sasync(="")?/gi, "");
-
-      return `<script${attributes} data-inline-src="${src}">${script}</script>`;
-    }
-  );
-
-  await fs.rm(releaseDir, { recursive: true, force: true });
-  await fs.mkdir(releaseDir, { recursive: true });
-  await fs.writeFile(outputPath, inlined, "utf8");
-}
-
-await inlineAssets();
+await fs.rm(releaseDir, { recursive: true, force: true });
+await fs.mkdir(releaseDir, { recursive: true });
+await fs.writeFile(targetPath, output, "utf8");
